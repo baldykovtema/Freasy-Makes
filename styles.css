@@ -47,6 +47,8 @@ h3 { margin: 9px 0 6px; font-size: 27px; line-height: 1.2; letter-spacing: -.045
 .features li::before { content: "✦"; position: absolute; left: 0; color: #b79bff; font-size: 12px; top: 2px; }
 .play { display: inline-flex; justify-content: center; align-items: center; gap: 8px; background: #bca0ff; color: #171225; border: 0; padding: 12px 17px; border-radius: 10px; font-size: 13px; font-weight: 800; transition: transform .2s, background .2s; white-space: nowrap; }
 .play:disabled { opacity: .55; cursor: wait; }
+.play.soon { background: #ffffff14; color: #aaa8bb; box-shadow: none; }
+.play.soon:hover { transform: none; background: #ffffff14; }
 .ghost { background: none; color: #d1cde5; border: 1px solid #ffffff2e; padding: 11px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; display: inline-flex; justify-content: center; align-items: center; gap: 8px; white-space: nowrap; }
 .ghost:hover { background: #ffffff14; }
 

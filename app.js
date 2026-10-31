@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency } from './currency.js';
-import { FORMATS, LIMITS, PLANS, validateOrder } from './supabase/functions/_shared/plans.js';
+import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, validateOrder } from './supabase/functions/_shared/plans.js';
 
 const root = document.getElementById('app');
 const nav = document.getElementById('nav');
@@ -44,8 +44,8 @@ async function setUser(user) {
 function renderNav() {
   nav.replaceChildren();
   if (state.user) {
+    if (state.admin) nav.append(el('a', { class: 'nav-link', href: '#/orders' }, 'Заявки'));
     nav.append(
-      state.admin ? el('a', { class: 'nav-link', href: '#/orders' }, 'Заявки') : null,
       el('a', { class: 'nav-link', href: '#/games' }, 'Мои игры'),
       el('button', { class: 'nav-link', type: 'button', onclick: async () => { await api.signOut(); await setUser(null); location.hash = '#/'; } }, 'Выйти'),
     );
@@ -77,7 +77,9 @@ function planCard(plan) {
     el('h3', {}, plan.name),
     priceBlock(plan),
     el('ul', { class: 'features' }, planFeatures(plan).map((text) => el('li', {}, text))),
-    el('a', { class: 'play', href: `#/studio/${plan.id}` }, `${label} ↗`),
+    plan.priceRsd && !PAYMENTS_ENABLED
+      ? el('span', { class: 'play soon' }, `${plan.name}: скоро`)
+      : el('a', { class: 'play', href: `#/studio/${plan.id}` }, `${label} ↗`),
   );
 }
 
@@ -272,7 +274,7 @@ function formatPicker(max) {
 
 function viewStudio(planId) {
   const plan = PLANS[planId];
-  if (!plan) { location.hash = '#/'; return []; }
+  if (!plan || (plan.priceRsd && !PAYMENTS_ENABLED)) { location.hash = '#/'; return []; }
   const notice = el('div', { 'aria-live': 'polite' });
   const showError = (text) => { notice.replaceChildren(message('error', text)); };
 

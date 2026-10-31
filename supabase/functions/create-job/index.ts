@@ -1,5 +1,5 @@
 import { adminClient, corsHeaders, json, notifyOwner, requireEnv, SITE_URL } from '../_shared/common.ts';
-import { PLANS, validateOrder } from '../_shared/plans.js';
+import { PAYMENTS_ENABLED, PLANS, validateOrder } from '../_shared/plans.js';
 
 async function rsdTo(currency: string, amountRsd: number) {
   const response = await fetch('https://open.er-api.com/v6/latest/RSD');
@@ -59,6 +59,7 @@ Deno.serve(async (request) => {
   }
 
   const plan = PLANS[body.plan as keyof typeof PLANS];
+  if (plan.priceRsd && !PAYMENTS_ENABLED) return json({ error: 'Этот план скоро появится' }, 403);
   const { data: job, error } = await db.from('jobs').insert({
     user_id: user.id,
     customer_email: user.email,

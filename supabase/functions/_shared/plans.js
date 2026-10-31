@@ -1,6 +1,9 @@
 // Единственный источник правды о планах: этот файл импортируют и сайт (app.js), и Edge Function (create-job).
 export const FORMATS = ['exe', 'dmg', 'apk'];
 
+// Пока оплата не подключена, платные планы показываются с пометкой «Скоро» и не принимаются сервером.
+export const PAYMENTS_ENABLED = false;
+
 export const PLANS = {
   free: { id: 'free', name: 'Бесплатно', priceRsd: 0, prompts: 1, descriptions: 0, imagePrompts: 0, imageUploads: 0, videos: 0, formats: 1 },
   pro: { id: 'pro', name: 'Pro', priceRsd: 50, prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
