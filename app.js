@@ -12,7 +12,7 @@ const STATUS = {
   failed: ['Ошибка', 'failed'],
 };
 
-const state = { user: null, currency: detectCurrency(), rates: null };
+const state = { user: null, admin: false, currency: detectCurrency(), rates: null };
 let pollTimer = null;
 
 function el(tag, props = {}, ...children) {
@@ -35,12 +35,19 @@ function setupBanner() {
   return api.configured ? null : el('div', { class: 'banner' }, 'Сайт ещё не подключён к Supabase, поэтому вход и создание игр пока не работают.');
 }
 
+async function setUser(user) {
+  state.user = user;
+  state.admin = user ? await api.isAdmin(user) : false;
+  renderNav();
+}
+
 function renderNav() {
   nav.replaceChildren();
   if (state.user) {
     nav.append(
+      state.admin ? el('a', { class: 'nav-link', href: '#/orders' }, 'Заявки') : null,
       el('a', { class: 'nav-link', href: '#/games' }, 'Мои игры'),
-      el('button', { class: 'nav-link', type: 'button', onclick: async () => { await api.signOut(); state.user = null; location.hash = '#/'; renderNav(); } }, 'Выйти'),
+      el('button', { class: 'nav-link', type: 'button', onclick: async () => { await api.signOut(); await setUser(null); location.hash = '#/'; } }, 'Выйти'),
     );
   } else {
     nav.append(el('a', { class: 'nav-link', href: '#/login' }, 'Войти'));
@@ -143,8 +150,7 @@ function viewLogin(next) {
         notice.append(message('info', 'Мы отправили письмо. Подтверди почту, а потом войди здесь.'));
         return;
       }
-      state.user = await api.user();
-      renderNav();
+      await setUser(await api.user());
       location.hash = next || '#/';
     } catch (failure) {
       notice.append(message('error', failure.message));
@@ -363,7 +369,7 @@ function viewGames() {
   async function refresh() {
     if (!list.isConnected) return;
     try {
-      const jobs = await api.listJobs();
+      const jobs = await api.listJobs(state.user);
       list.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [el('div', { class: 'panel empty' }, 'Здесь появятся твои игры.', el('br'), el('a', { class: 'play', href: '#/' }, 'Выбрать план ↗'))]));
       if (jobs.some((job) => ['queued', 'awaiting_payment'].includes(job.status))) pollTimer = setTimeout(refresh, 6000);
     } catch (failure) {
@@ -376,15 +382,86 @@ function viewGames() {
     el('p', { class: 'lead' }, 'Готовые файлы появятся здесь, страница обновляется сама.'), list);
 }
 
+function fileLinks(paths, label) {
+  return paths.map((path, index) => el('button', {
+    class: 'ghost', type: 'button',
+    onclick: async (event) => {
+      const button = event.currentTarget;
+      // Вкладку открываем сразу: после await браузер посчитал бы её всплывающим окном.
+      const tab = window.open('', '_blank');
+      try {
+        const url = await api.uploadUrl(path);
+        if (tab) tab.location.href = url;
+        else location.href = url;
+      } catch (failure) {
+        tab?.close();
+        button.after(message('error', failure.message));
+      }
+    },
+  }, `${label} ${index + 1} ↗`));
+}
+
+function orderSection(title, items) {
+  return items.length ? el('div', { class: 'order-section' }, el('strong', {}, title), items.map((text) => el('p', {}, text))) : null;
+}
+
+function orderCard(job) {
+  const [label, tone] = STATUS[job.status] ?? [job.status, ''];
+  const order = job.request;
+  const files = [...fileLinks(order.imageUploads, 'Картинка'), ...fileLinks(order.videoUploads, 'Видео')];
+  const copy = el('button', {
+    class: 'ghost', type: 'button',
+    onclick: async () => { await navigator.clipboard.writeText(job.id); copy.textContent = 'Скопировано'; },
+  }, 'Скопировать номер');
+  return el('article', { class: 'panel job' },
+    el('div', { class: 'job-head' },
+      el('div', {}, el('div', { class: 'meta' }, `${PLANS[job.plan]?.name ?? job.plan} · ${job.formats.map((f) => `.${f}`).join(', ')}`),
+        el('h3', {}, new Date(job.created_at).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }))),
+      el('span', { class: `badge ${tone}` }, label)),
+    el('p', { class: 'job-note' }, `Заказчик: ${job.customer_email || 'неизвестен'}`),
+    el('p', { class: 'job-note order-id' }, job.id),
+    orderSection('Промт игры', order.prompts),
+    orderSection('Описания', order.descriptions),
+    orderSection('Промты картинок', order.imagePrompts),
+    orderSection('Промты видео', order.videoPrompts),
+    el('div', { class: 'downloads' }, copy, files),
+  );
+}
+
+function viewOrders() {
+  const list = el('div', {}, message('info', 'Загружаем…'));
+  const count = el('p', { class: 'lead' }, 'Новые заявки появятся здесь сами.');
+  async function refresh() {
+    if (!list.isConnected) return;
+    try {
+      const orders = await api.listOrders();
+      const waiting = orders.filter((job) => job.status === 'queued').length;
+      count.textContent = `Ждут выполнения: ${waiting}. Новые заявки появятся здесь сами.`;
+      list.replaceChildren(...(orders.length ? orders.map(orderCard) : [el('div', { class: 'panel empty' }, 'Заявок пока нет.')]));
+      pollTimer = setTimeout(refresh, 30000);
+    } catch (failure) {
+      list.replaceChildren(message('error', failure.message));
+    }
+  }
+  queueMicrotask(refresh);
+  return el('section', { class: 'narrow page' },
+    el('div', { class: 'section-kicker' }, 'Только для владельца'), el('h1', {}, 'Заявки'), count, list);
+}
+
 async function route() {
   clearTimeout(pollTimer);
   const [, page, param] = (location.hash || '#/').split('/');
-  const needsAccount = page === 'studio' || page === 'games';
+  const needsAccount = page === 'studio' || page === 'games' || page === 'orders';
   if (needsAccount && !state.user) {
     location.hash = `#/login/${encodeURIComponent(location.hash)}`;
     return;
   }
+  if (page === 'orders' && !state.admin) {
+    location.hash = '#/';
+    return;
+  }
   const view = page === 'studio' ? viewStudio(param)
+    : page === 'orders' ? viewOrders()
     : page === 'games' ? viewGames()
     : page === 'login' ? viewLogin(location.hash.split('/').slice(2).join('/') ? decodeURIComponent(location.hash.split('/').slice(2).join('/')) : '')
     : viewHome();
@@ -392,9 +469,9 @@ async function route() {
   if (location.hash !== '#plans') window.scrollTo(0, 0);
 }
 
-api.onAuthChange((user) => { state.user = user; renderNav(); });
+// Запрос к базе внутри этого обработчика заблокировал бы клиент Supabase, поэтому откладываем его.
+api.onAuthChange((user) => { setTimeout(() => setUser(user)); });
 window.addEventListener('hashchange', route);
-state.user = await api.user();
+await setUser(await api.user());
 loadRates().then((rates) => { state.rates = rates; });
-renderNav();
 route();

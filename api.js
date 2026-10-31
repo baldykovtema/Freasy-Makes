@@ -68,12 +68,32 @@ export const api = {
     return data;
   },
 
-  async listJobs() {
+  // Фильтр по user_id нужен владельцу: политика доступа показывает ему заказы всех людей.
+  async listJobs(user) {
     const { data, error } = await need().from('jobs')
       .select('id, plan, status, formats, title, artifacts, error, checkout_url, created_at')
-      .order('created_at', { ascending: false }).limit(50);
+      .eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
     if (error) throw new Error('Не удалось загрузить игры');
     return data;
+  },
+
+  async isAdmin(user) {
+    const { data } = await need().from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
+    return Boolean(data);
+  },
+
+  async listOrders() {
+    const { data, error } = await need().from('jobs')
+      .select('id, plan, status, formats, request, customer_email, title, error, created_at')
+      .neq('status', 'awaiting_payment').order('created_at', { ascending: false }).limit(200);
+    if (error) throw new Error('Не удалось загрузить заявки');
+    return data;
+  },
+
+  async uploadUrl(path) {
+    const { data, error } = await need().storage.from('uploads').createSignedUrl(path, 3600);
+    if (error) throw new Error('Не удалось открыть файл');
+    return data.signedUrl;
   },
 
   async downloadUrl(path, name) {

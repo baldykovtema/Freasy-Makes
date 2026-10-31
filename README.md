@@ -11,9 +11,13 @@
 - **Письма** отправляет Resend: бесплатная заявка уходит сразу, платная после оплаты.
 - Лимиты и цены планов лежат в одном файле: `supabase/functions/_shared/plans.js`.
 
+## Заявки
+
+Все заявки видны на странице `#/orders`: ссылка **Заявки** появляется только у аккаунта из таблицы `admins`. Письма остаются уведомлением.
+
 ## Как выдать готовую игру
 
-Номер заказа есть в письме с заявкой.
+Номер заказа есть на странице заявок и в письме.
 
 ```bash
 python3 tools/deliver_game.py НОМЕР_ЗАКАЗА игра.exe --title "Название" --rules "Как играть"
@@ -31,7 +35,7 @@ python3 tools/deliver_game.py НОМЕР_ЗАКАЗА --refuse "Причина"
 
 ### 1. Supabase
 
-1. В **SQL Editor** выполни `supabase/migrations/0001_init.sql`.
+1. В **SQL Editor** выполни файлы из `supabase/migrations/` по порядку.
 2. В **Authentication → URL Configuration** добавь `https://baldykovtema.github.io/Freasy-Makes/` в Redirect URLs. Site URL не меняй: проект общий с PVZ.
 
 Project URL и anon key уже вписаны в `config.js`.

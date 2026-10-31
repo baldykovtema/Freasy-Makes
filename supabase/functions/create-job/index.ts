@@ -61,6 +61,7 @@ Deno.serve(async (request) => {
   const plan = PLANS[body.plan as keyof typeof PLANS];
   const { data: job, error } = await db.from('jobs').insert({
     user_id: user.id,
+    customer_email: user.email,
     plan: plan.id,
     status: plan.priceRsd ? 'awaiting_payment' : 'queued',
     request: order,
