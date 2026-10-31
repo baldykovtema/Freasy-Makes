@@ -19,8 +19,9 @@
 
 1. Создай проект на [supabase.com](https://supabase.com).
 2. В **SQL Editor** выполни `supabase/migrations/0001_init.sql`.
-3. В **Authentication → URL Configuration** укажи Site URL `https://baldykovtema.github.io/Freasy-Makes/`.
-4. Впиши Project URL и anon key в `config.js`.
+3. В **Authentication → URL Configuration** добавь `https://baldykovtema.github.io/Freasy-Makes/` в Redirect URLs. Site URL не меняй: проект общий с PVZ.
+
+Project URL и anon key уже вписаны в `config.js`.
 
 ### 2. Ключи сервисов
 
