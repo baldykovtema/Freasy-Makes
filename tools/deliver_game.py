@@ -57,7 +57,7 @@ def service_key():
 
 def call(key, path, data=None, headers=None, method=None):
     merged = {'apikey': key, 'Authorization': f'Bearer {key}', **(headers or {})}
-    req = urllib.request.Request(f'{SUPABASE_URL}{path}', data, merged, method)
+    req = urllib.request.Request(f'{SUPABASE_URL}{path}', data, merged, method=method)
     try:
         with urllib.request.urlopen(req, timeout=600) as response:
             return response.read()
