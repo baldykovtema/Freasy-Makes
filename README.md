@@ -1,71 +1,72 @@
 # Freasy Makes
 
-Сайт, где человек описывает игру, а Claude делает её и отдаёт файл `.exe`, `.dmg` или `.apk` вместе с инструкцией по запуску.
+Сайт заявок на игры. Человек заполняет форму, заявка приходит автору на почту, автор делает игру вручную и выдаёт файл с инструкцией на сайте.
 
 Адрес: https://baldykovtema.github.io/Freasy-Makes/
 
 ## Как устроено
 
 - **Сайт** (`index.html`, `app.js`, `api.js`, `currency.js`, `styles.css`) работает на GitHub Pages.
-- **Supabase** отвечает за аккаунты, заказы и хранение файлов. Функция `create-job` проверяет заказ и запускает сборку или оплату, `payment-webhook` принимает оплату от Lemon Squeezy.
-- **GitHub Actions** (`.github/workflows/build-game.yml`, папка `worker/`) делает картинки и видео через Replicate, игру через Claude, собирает файлы и кладёт их в Supabase.
+- **Supabase** отвечает за аккаунты, заказы и хранение файлов. Функция `create-job` проверяет заказ, `payment-webhook` принимает оплату от Lemon Squeezy.
+- **Письма** отправляет Resend: бесплатная заявка уходит сразу, платная после оплаты.
 - Лимиты и цены планов лежат в одном файле: `supabase/functions/_shared/plans.js`.
+
+## Как выдать готовую игру
+
+Номер заказа есть в письме с заявкой.
+
+```bash
+python3 tools/deliver_game.py НОМЕР_ЗАКАЗА игра.exe --title "Название" --rules "Как играть"
+```
+
+Файл появится у заказчика в разделе «Мои игры» вместе с `КАК_ЗАПУСТИТЬ.txt`. Если у заказа два формата, укажи оба файла. Предел одного файла 50 МБ.
+
+Отказать в заказе:
+
+```bash
+python3 tools/deliver_game.py НОМЕР_ЗАКАЗА --refuse "Причина"
+```
 
 ## Что настроить
 
-Все команды запускаются из папки проекта.
-
 ### 1. Supabase
 
-1. Создай проект на [supabase.com](https://supabase.com).
-2. В **SQL Editor** выполни `supabase/migrations/0001_init.sql`.
-3. В **Authentication → URL Configuration** добавь `https://baldykovtema.github.io/Freasy-Makes/` в Redirect URLs. Site URL не меняй: проект общий с PVZ.
+1. В **SQL Editor** выполни `supabase/migrations/0001_init.sql`.
+2. В **Authentication → URL Configuration** добавь `https://baldykovtema.github.io/Freasy-Makes/` в Redirect URLs. Site URL не меняй: проект общий с PVZ.
 
 Project URL и anon key уже вписаны в `config.js`.
 
-### 2. Ключи сервисов
+### 2. Письма
 
-| Сервис | Что получить |
-| --- | --- |
-| [Anthropic Console](https://console.anthropic.com) | API-ключ `ANTHROPIC_API_KEY` |
-| [Replicate](https://replicate.com) | токен `REPLICATE_API_TOKEN` |
-| [Lemon Squeezy](https://lemonsqueezy.com) | API-ключ, Store ID, Variant ID любого товара, секрет вебхука |
-| GitHub | fine-grained токен на репозиторий Freasy-Makes с правом **Contents: Read and write** |
-
-В Lemon Squeezy создай вебхук на `https://<проект>.supabase.co/functions/v1/payment-webhook` с событием `order_created`.
+Зарегистрируйся на [resend.com](https://resend.com) с той же почтой, куда должны приходить заявки, и создай API-ключ. Без своего домена Resend отправляет письма только на эту почту.
 
 ### 3. Функции Supabase
 
 ```bash
-brew install supabase/tap/supabase
+~/.local/bin/supabase login
 ```
 
 ```bash
-supabase login
+~/.local/bin/supabase functions deploy create-job --project-ref ywqxrbmgmvpbeytxjkpi
 ```
 
 ```bash
-supabase link --project-ref <id-проекта>
+~/.local/bin/supabase functions deploy payment-webhook --no-verify-jwt --project-ref ywqxrbmgmvpbeytxjkpi
 ```
 
 ```bash
-supabase functions deploy create-job
+~/.local/bin/supabase secrets set --project-ref ywqxrbmgmvpbeytxjkpi ORDER_EMAIL=... RESEND_API_KEY=...
 ```
+
+### 4. Оплата
+
+Создай товар в [Lemon Squeezy](https://lemonsqueezy.com) и вебхук на `https://ywqxrbmgmvpbeytxjkpi.supabase.co/functions/v1/payment-webhook` с событием `order_created`. Затем добавь секреты:
 
 ```bash
-supabase functions deploy payment-webhook --no-verify-jwt
+~/.local/bin/supabase secrets set --project-ref ywqxrbmgmvpbeytxjkpi LEMONSQUEEZY_API_KEY=... LEMONSQUEEZY_STORE_ID=... LEMONSQUEEZY_VARIANT_ID=... LEMONSQUEEZY_WEBHOOK_SECRET=...
 ```
-
-```bash
-supabase secrets set GITHUB_REPO=baldykovtema/Freasy-Makes GITHUB_DISPATCH_TOKEN=... LEMONSQUEEZY_API_KEY=... LEMONSQUEEZY_STORE_ID=... LEMONSQUEEZY_VARIANT_ID=... LEMONSQUEEZY_WEBHOOK_SECRET=...
-```
-
-### 4. Секреты GitHub
-
-В **Settings → Secrets and variables → Actions** добавь `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY` и `REPLICATE_API_TOKEN`.
 
 ## Важно
 
-- Репозиторий публичный, поэтому логи Actions видны всем. `worker/` печатает только id заказа, промты в логи не попадают.
 - Не вставляй `service_role` и другие секреты в `config.js`: этот файл публичный.
 - Файлы игр не удаляются сами, а бесплатный Supabase хранит 1 ГБ.

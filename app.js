@@ -7,9 +7,7 @@ const nav = document.getElementById('nav');
 const FORMAT_LABELS = { exe: 'Windows', dmg: 'macOS', apk: 'Android' };
 const STATUS = {
   awaiting_payment: ['Ждёт оплаты', ''],
-  queued: ['В очереди', 'work'],
-  generating: ['Claude делает игру', 'work'],
-  building: ['Собираем файл', 'work'],
+  queued: ['Делаем игру', 'work'],
   done: ['Готово', 'done'],
   failed: ['Ошибка', 'failed'],
 };
@@ -91,12 +89,12 @@ function viewHome() {
   const steps = [
     ['Опиши игру', 'Напиши, во что хочешь играть. На Pro и Max можно добавить описания, картинки и видео.'],
     ['Выбери формат', 'exe для Windows, dmg для Mac или apk для Android.'],
-    ['Скачай на сайте', 'Claude сделает игру, а на сайте появятся её файл и инструкция, как её запустить.'],
+    ['Скачай на сайте', 'Мы сделаем игру вручную, а на сайте появятся её файл и инструкция, как её запустить.'],
   ];
   return [
     el('section', { class: 'hero wrap', 'aria-labelledby': 'welcome-title' },
       el('div', { class: 'eyebrow' }, 'Игры по твоему описанию'),
-      el('h1', { id: 'welcome-title' }, 'Придумай игру, а ', el('span', {}, 'Claude'), ' её сделает'),
+      el('h1', { id: 'welcome-title' }, 'Придумай игру, а ', el('span', {}, 'мы'), ' её сделаем'),
       el('p', {}, 'Опиши идею обычными словами и получи готовую игру для Windows, macOS или Android.'),
       el('a', { class: 'hero-action', href: '#plans', onclick: (event) => { event.preventDefault(); document.getElementById('plans').scrollIntoView(); } }, 'Выбрать план ', el('span', { 'aria-hidden': 'true' }, '↗')),
     ),
@@ -322,8 +320,8 @@ function viewStudio(planId) {
     el('div', { class: 'section-kicker' }, `План ${plan.name}`),
     el('h1', {}, plan.priceRsd ? 'Опиши свою игру' : 'Попробуй бесплатно'),
     el('p', { class: 'lead' }, plan.priceRsd
-      ? 'Заполни форму и оплати. После оплаты Claude сделает игру, а файл и инструкция появятся в разделе «Мои игры».'
-      : 'Напиши промт и выбери формат. Файл игры и инструкция появятся в разделе «Мои игры».'),
+      ? 'Заполни форму и оплати. После оплаты мы сделаем игру вручную, а файл и инструкция появятся в разделе «Мои игры».'
+      : 'Напиши промт и выбери формат. Мы сделаем игру вручную, а файл и инструкция появятся в разделе «Мои игры».'),
     el('form', { class: 'panel', onsubmit: onSubmit, novalidate: true },
       prompts.node, descriptions?.node ?? null, images?.node ?? null, videos?.node ?? null, formats.node,
       el('div', { class: 'submit' },
@@ -336,7 +334,7 @@ function viewStudio(planId) {
 function jobCard(job) {
   const [label, tone] = STATUS[job.status] ?? [job.status, ''];
   const notes = {
-    queued: 'Скоро начнём.', generating: 'Обычно это занимает несколько минут.', building: 'Осталось упаковать игру в файл.',
+    queued: 'Заявка принята. Игру делают вручную, файл и инструкция появятся здесь, когда она будет готова.',
     failed: job.error || 'Что-то пошло не так.',
   };
   const download = (path, name, text, className) => el('button', {
@@ -367,7 +365,7 @@ function viewGames() {
     try {
       const jobs = await api.listJobs();
       list.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [el('div', { class: 'panel empty' }, 'Здесь появятся твои игры.', el('br'), el('a', { class: 'play', href: '#/' }, 'Выбрать план ↗'))]));
-      if (jobs.some((job) => ['queued', 'generating', 'building', 'awaiting_payment'].includes(job.status))) pollTimer = setTimeout(refresh, 6000);
+      if (jobs.some((job) => ['queued', 'awaiting_payment'].includes(job.status))) pollTimer = setTimeout(refresh, 6000);
     } catch (failure) {
       list.replaceChildren(message('error', failure.message));
     }
@@ -375,7 +373,7 @@ function viewGames() {
   queueMicrotask(refresh);
   return el('section', { class: 'narrow page' },
     el('div', { class: 'section-kicker' }, 'Твоя коллекция'), el('h1', {}, 'Мои игры'),
-    el('p', { class: 'lead' }, 'Страница обновляется сама, пока игра собирается.'), list);
+    el('p', { class: 'lead' }, 'Готовые файлы появятся здесь, страница обновляется сама.'), list);
 }
 
 async function route() {

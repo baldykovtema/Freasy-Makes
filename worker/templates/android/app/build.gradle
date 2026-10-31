@@ -1,8 +1,0 @@
-plugins { id 'com.android.application' }
-android {
-    namespace 'com.freasymakes.game'
-    compileSdk 36
-    defaultConfig { applicationId '__APP_ID__'; minSdk 23; targetSdk 36; versionCode 1; versionName '1.0' }
-    sourceSets { main { assets.srcDirs = ['../www'] } }
-    buildTypes { release { minifyEnabled false } }
-}

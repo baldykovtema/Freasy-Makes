@@ -1,4 +1,4 @@
-import { adminClient, corsHeaders, dispatchBuild, json, requireEnv, SITE_URL } from '../_shared/common.ts';
+import { adminClient, corsHeaders, json, notifyOwner, requireEnv, SITE_URL } from '../_shared/common.ts';
 import { PLANS, validateOrder } from '../_shared/plans.js';
 
 async function rsdTo(currency: string, amountRsd: number) {
@@ -71,7 +71,7 @@ Deno.serve(async (request) => {
 
   try {
     if (!plan.priceRsd) {
-      await dispatchBuild(job.id);
+      await notifyOwner(db, job.id);
       return json({ job_id: job.id });
     }
     const checkoutUrl = await createCheckout(job.id, plan.name, plan.priceRsd, user.email ?? '');
