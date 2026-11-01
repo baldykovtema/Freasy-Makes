@@ -85,7 +85,7 @@ export const api = {
   async listOrders() {
     const { data, error } = await need().from('jobs')
       .select('id, plan, status, formats, request, customer_email, title, error, created_at')
-      .neq('status', 'awaiting_payment').order('created_at', { ascending: false }).limit(200);
+      .neq('status', 'awaiting_payment').eq('hidden', false).order('created_at', { ascending: false }).limit(200);
     if (error) throw new Error('Не удалось загрузить заявки');
     return data;
   },
