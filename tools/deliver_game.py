@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Выдаёт заказчику готовую игру: кладёт файл и инструкцию в Supabase и отмечает заказ готовым.
+"""Выдаёт заказчику готовую игру или сайт: кладёт файл и инструкцию в Supabase и отмечает заказ готовым.
 
   python3 tools/deliver_game.py НОМЕР_ЗАКАЗА игра.exe --title "Кот и рыба" --rules "Стрелки: бег, пробел: прыжок"
   python3 tools/deliver_game.py НОМЕР_ЗАКАЗА --refuse "Не можем сделать такую игру"
@@ -25,6 +25,7 @@ CONTENT_TYPES = {
     'exe': 'application/octet-stream',
     'dmg': 'application/x-apple-diskimage',
     'apk': 'application/vnd.android.package-archive',
+    'zip': 'application/zip',
 }
 STEPS = {
     'exe': """ЗАПУСК НА WINDOWS
@@ -41,6 +42,10 @@ STEPS = {
 3. Если Google Play Защита предупредит о неизвестном приложении, выбери «Всё равно установить».
 4. Нажми «Открыть» или найди игру на главном экране.
 Файл APK работает только на Android. На iPhone он не установится.""",
+    'zip': """КАК ОТКРЫТЬ САЙТ
+1. Скачай файл {name} и распакуй архив.
+2. Открой файл index.html двойным нажатием: сайт откроется в браузере.
+3. Чтобы сайт был доступен всем, загрузи содержимое архива на хостинг, например на GitHub Pages или Netlify.""",
 }
 
 
@@ -89,6 +94,9 @@ def file_name(title, job_id, format_name):
 
 def how_to_run(title, rules, format_name, name):
     steps = STEPS[format_name].format(name=name)
+    if format_name == 'zip':
+        notes = f'\n\nО САЙТЕ\n{rules}' if rules else ''
+        return f"{title or 'Твой сайт'}\n\n{steps}{notes}\n\nСайт сделан на Freasy Makes: https://baldykovtema.github.io/Freasy-Makes/\n"
     return f"{title or 'Твоя игра'}\n\n{steps}\n\nКАК ИГРАТЬ\n{rules or 'Подсказки есть в самой игре.'}\n\nИгра сделана на Freasy Makes: https://baldykovtema.github.io/Freasy-Makes/\n"
 
 
@@ -97,7 +105,7 @@ def main():
     parser.add_argument('job_id')
     parser.add_argument('files', nargs='*', type=Path)
     parser.add_argument('--title', default='')
-    parser.add_argument('--rules', default='', help='Как играть, попадёт в инструкцию')
+    parser.add_argument('--rules', default='', help='Как играть или что на сайте, попадёт в инструкцию')
     parser.add_argument('--refuse', help='Отказать в заказе с этой причиной')
     args = parser.parse_args()
     if not re.fullmatch(r'[0-9a-f-]{36}', args.job_id):
@@ -129,7 +137,7 @@ def main():
         artifacts.append({'format': format_name, 'file': f'{prefix}/{name}', 'file_name': name, 'guide': f'{prefix}/how-to-run.txt'})
 
     update_job(key, job['id'], {'status': 'done', 'title': args.title[:80] or None, 'how_to_play': args.rules[:2000] or None, 'artifacts': artifacts})
-    print('Готово: файл и инструкция появились у заказчика в разделе «Мои игры»')
+    print('Готово: файл и инструкция появились у заказчика в разделе «Мои заказы»')
 
 
 if __name__ == '__main__':

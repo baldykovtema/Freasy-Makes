@@ -37,6 +37,7 @@ export async function notifyOwner(db: ReturnType<typeof adminClient>, jobId: str
   const { data: account } = await db.auth.admin.getUserById(job.user_id);
   const email = account?.user?.email ?? 'неизвестна';
   const order = job.request;
+  const product = order.kind === 'site' ? 'сайт' : 'игру';
 
   const links = async (paths: string[]) => {
     if (!paths.length) return [];
@@ -46,12 +47,13 @@ export async function notifyOwner(db: ReturnType<typeof adminClient>, jobId: str
   };
 
   const text = [
+    `Заказ: ${product}`,
     `План: ${job.plan}`,
     `Формат: ${job.formats.join(', ')}`,
     `Почта заказчика: ${email}`,
     `Номер заказа: ${job.id}`,
     '',
-    ...section('Промт игры', order.prompts),
+    ...section(order.kind === 'site' ? 'Промт сайта' : 'Промт игры', order.prompts),
     ...section('Описания', order.descriptions),
     ...section('Промты картинок', order.imagePrompts),
     ...section('Картинки заказчика (ссылки работают 7 дней)', await links(order.imageUploads)),
@@ -65,7 +67,7 @@ export async function notifyOwner(db: ReturnType<typeof adminClient>, jobId: str
     body: JSON.stringify({
       from: 'Freasy Makes <onboarding@resend.dev>',
       to: [requireEnv('ORDER_EMAIL')],
-      subject: `Новая заявка на игру: ${job.plan}, ${job.formats.join(', ')}`,
+      subject: `Новая заявка на ${product}: ${job.plan}, ${job.formats.join(', ')}`,
       text,
     }),
   });

@@ -68,7 +68,7 @@ Deno.serve(async (request) => {
     request: order,
     formats: order.formats,
   }).select('id').single();
-  if (error?.code === '23505') return json({ error: 'Бесплатная игра доступна один раз в сутки' }, 429);
+  if (error?.code === '23505') return json({ error: 'Бесплатный заказ доступен один раз в сутки' }, 429);
   if (error) return json({ error: 'Не удалось создать заказ' }, 500);
 
   try {

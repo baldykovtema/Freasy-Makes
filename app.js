@@ -1,13 +1,13 @@
 import { api } from './api.js';
 import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency } from './currency.js';
-import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, validateOrder } from './supabase/functions/_shared/plans.js';
+import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js';
 
 const root = document.getElementById('app');
 const nav = document.getElementById('nav');
 const FORMAT_LABELS = { exe: 'Windows', dmg: 'macOS', apk: 'Android' };
 const STATUS = {
   awaiting_payment: ['Ждёт оплаты', ''],
-  queued: ['Делаем игру', 'work'],
+  queued: ['В работе', 'work'],
   done: ['Готово', 'done'],
   failed: ['Ошибка', 'failed'],
 };
@@ -32,7 +32,7 @@ function message(kind, text) {
 }
 
 function setupBanner() {
-  return api.configured ? null : el('div', { class: 'banner' }, 'Сайт ещё не подключён к Supabase, поэтому вход и создание игр пока не работают.');
+  return api.configured ? null : el('div', { class: 'banner' }, 'Сайт ещё не подключён к Supabase, поэтому вход и заказы пока не работают.');
 }
 
 async function setUser(user) {
@@ -46,7 +46,7 @@ function renderNav() {
   if (state.user) {
     if (state.admin) nav.append(el('a', { class: 'nav-link', href: '#/orders' }, 'Заявки'));
     nav.append(
-      el('a', { class: 'nav-link', href: '#/games' }, 'Мои игры'),
+      el('a', { class: 'nav-link', href: '#/games' }, 'Мои заказы'),
       el('button', { class: 'nav-link', type: 'button', onclick: async () => { await api.signOut(); await setUser(null); location.hash = '#/'; } }, 'Выйти'),
     );
   } else {
@@ -55,17 +55,18 @@ function renderNav() {
 }
 
 function planFeatures(plan) {
-  const list = [plan.prompts === 1 ? '1 промт игры' : `${plan.prompts} промта игры`];
-  if (plan.descriptions) list.push(`До ${plan.descriptions} описаний игры`);
+  const list = ['Игра или сайт на выбор', plan.prompts === 1 ? '1 промт' : `${plan.prompts} промта`];
+  if (plan.descriptions) list.push(`До ${plan.descriptions} описаний`);
   if (plan.imagePrompts) list.push(`${plan.imagePrompts} промтов картинок или ${plan.imageUploads} своих картинок`);
   if (plan.videos) list.push(plan.videos === 1 ? '1 промт видео или своё видео' : `${plan.videos} промта видео или ${plan.videos} своих видео`);
-  list.push(plan.formats === 1 ? '1 формат: exe, dmg или apk' : `${plan.formats} формата: exe, dmg или apk`);
-  list.push('Файл игры и инструкция по запуску');
+  list.push(plan.formats === 1 ? 'Игра: 1 формат из exe, dmg, apk' : `Игра: ${plan.formats} формата из exe, dmg, apk`);
+  list.push('Сайт: архив zip');
+  list.push('Готовый файл и инструкция по запуску');
   return list;
 }
 
 function priceBlock(plan) {
-  if (!plan.priceRsd) return [el('div', { class: 'price' }, '0 дин'), el('div', { class: 'price-note' }, 'Одна игра в сутки')];
+  if (!plan.priceRsd) return [el('div', { class: 'price' }, '0 дин'), el('div', { class: 'price-note' }, 'Один заказ в сутки')];
   const { main, note } = formatPrice(plan.priceRsd, state.currency, state.rates);
   return [el('div', { class: 'price' }, main), el('div', { class: 'price-note' }, note)];
 }
@@ -73,7 +74,7 @@ function priceBlock(plan) {
 function planCard(plan) {
   const label = plan.priceRsd ? `${plan.name} ${plan.priceRsd} дин` : 'Попробовать бесплатно';
   return el('article', { class: `card${plan.id === 'pro' ? ' featured' : ''}` },
-    el('div', { class: 'meta' }, plan.priceRsd ? 'За одну игру' : 'Без оплаты'),
+    el('div', { class: 'meta' }, plan.priceRsd ? 'За один заказ' : 'Без оплаты'),
     el('h3', {}, plan.name),
     priceBlock(plan),
     el('ul', { class: 'features' }, planFeatures(plan).map((text) => el('li', {}, text))),
@@ -96,26 +97,26 @@ function viewHome() {
   const redraw = () => plans.replaceChildren(...Object.values(PLANS).map(planCard));
   if (!state.rates) loadRates().then((rates) => { state.rates = rates; if (plans.isConnected) redraw(); });
   const steps = [
-    ['Опиши игру', 'Напиши, во что хочешь играть. На Pro и Max можно добавить описания, картинки и видео.'],
-    ['Выбери формат', 'exe для Windows, dmg для Mac или apk для Android.'],
-    ['Скачай на сайте', 'Мы сделаем игру вручную, а на сайте появятся её файл и инструкция, как её запустить.'],
+    ['Опиши идею', 'Напиши, какая нужна игра или какой сайт. На Pro и Max можно добавить описания, картинки и видео.'],
+    ['Выбери, что нужно', 'Игра для Windows, Mac или Android либо готовый сайт архивом.'],
+    ['Скачай на сайте', 'Мы сделаем всё вручную, а здесь появятся готовый файл и инструкция, как его запустить.'],
   ];
   return [
     el('section', { class: 'hero wrap', 'aria-labelledby': 'welcome-title' },
-      el('div', { class: 'eyebrow' }, 'Игры по твоему описанию'),
-      el('h1', { id: 'welcome-title' }, 'Придумай игру, а ', el('span', {}, 'мы'), ' её сделаем'),
-      el('p', {}, 'Опиши идею обычными словами и получи готовую игру для Windows, macOS или Android.'),
+      el('div', { class: 'eyebrow' }, 'Игры и сайты по твоему описанию'),
+      el('h1', { id: 'welcome-title' }, 'Придумай игру или сайт, а ', el('span', {}, 'мы'), ' их сделаем'),
+      el('p', {}, 'Опиши идею обычными словами и получи готовую игру для Windows, macOS или Android либо готовый сайт.'),
       el('a', { class: 'hero-action', href: '#plans', onclick: (event) => { event.preventDefault(); document.getElementById('plans').scrollIntoView(); } }, 'Выбрать план ', el('span', { 'aria-hidden': 'true' }, '↗')),
     ),
     el('section', { class: 'wrap', id: 'plans', 'aria-labelledby': 'plans-title' },
       setupBanner(),
       el('div', { class: 'section-heading' },
-        el('div', {}, el('div', { class: 'section-kicker' }, 'Твоя игра'), el('h2', { id: 'plans-title' }, 'Выбирай план')),
+        el('div', {}, el('div', { class: 'section-kicker' }, 'Твой заказ'), el('h2', { id: 'plans-title' }, 'Выбирай план')),
         currencySelect(redraw)),
       plans,
     ),
     el('section', { class: 'wrap', 'aria-labelledby': 'how-title' },
-      el('div', { class: 'section-heading' }, el('div', {}, el('div', { class: 'section-kicker' }, 'Как это работает'), el('h2', { id: 'how-title' }, 'Три шага до игры'))),
+      el('div', { class: 'section-heading' }, el('div', {}, el('div', { class: 'section-kicker' }, 'Как это работает'), el('h2', { id: 'how-title' }, 'Три шага до результата'))),
       el('div', { class: 'steps' }, steps.map(([title, text], index) => el('div', { class: 'step' },
         el('span', { class: 'step-number' }, `Шаг ${index + 1}`), el('strong', {}, title), el('p', {}, text)))),
     ),
@@ -164,7 +165,7 @@ function viewLogin(next) {
   return el('section', { class: 'narrow page' },
     setupBanner(),
     el('h1', {}, 'Войди в аккаунт'),
-    el('p', { class: 'lead' }, 'Аккаунт нужен, чтобы сохранить твои игры и выдать файлы только тебе.'),
+    el('p', { class: 'lead' }, 'Аккаунт нужен, чтобы сохранить твои заказы и выдать файлы только тебе.'),
     el('form', { class: 'panel', onsubmit: onSubmit },
       el('div', { class: 'tabs' }, signIn, signUp),
       el('div', { class: 'field' }, el('label', { htmlFor: 'email' }, 'Почта'), email),
@@ -272,14 +273,22 @@ function formatPicker(max) {
   };
 }
 
-function viewStudio(planId) {
+function viewStudio(planId, kind) {
+  const isSite = kind === 'site';
+  const product = isSite ? 'сайт' : 'игру';
   const plan = PLANS[planId];
   if (!plan || (plan.priceRsd && !PAYMENTS_ENABLED)) { location.hash = '#/'; return []; }
   const notice = el('div', { 'aria-live': 'polite' });
   const showError = (text) => { notice.replaceChildren(message('error', text)); };
 
-  const prompts = textList({ label: 'Промт игры', max: plan.prompts, placeholder: 'Например: платформер про кота, который собирает рыбу на крышах', required: 1 });
-  const descriptions = plan.descriptions ? textList({ label: 'Описание игры', max: plan.descriptions, placeholder: 'Правила, герои, уровни, настроение' }) : null;
+  const prompts = textList({
+    label: isSite ? 'Промт сайта' : 'Промт игры', max: plan.prompts, required: 1,
+    placeholder: isSite ? 'Например: сайт-визитка кофейни с меню и контактами' : 'Например: платформер про кота, который собирает рыбу на крышах',
+  });
+  const descriptions = plan.descriptions ? textList({
+    label: isSite ? 'Описание сайта' : 'Описание игры', max: plan.descriptions,
+    placeholder: isSite ? 'Страницы, разделы, цвета, настроение' : 'Правила, герои, уровни, настроение',
+  }) : null;
   const images = plan.imagePrompts ? mediaGroup({
     title: 'Картинки', promptLabel: 'Промт картинки', placeholder: 'Что должно быть на картинке', promptMax: plan.imagePrompts, fileMax: plan.imageUploads,
     hint: `Свои картинки: PNG, JPG или WEBP, до ${LIMITS.imageBytes / 1024 / 1024} МБ каждая.`, onError: showError,
@@ -290,18 +299,20 @@ function viewStudio(planId) {
     hint: `Своё видео: MP4 или WEBM, до ${LIMITS.videoBytes / 1024 / 1024} МБ каждое.`, onError: showError,
     fileOptions: { accept: LIMITS.videoTypes.join(','), types: LIMITS.videoTypes, maxBytes: LIMITS.videoBytes, label: 'Выбрать видео' },
   }) : null;
-  const formats = formatPicker(plan.formats);
-  const submit = el('button', { class: 'play', type: 'submit' }, plan.priceRsd ? `Оплатить ${plan.priceRsd} дин ↗` : 'Создать игру ↗');
+  const formats = isSite ? null : formatPicker(plan.formats);
+  const submit = el('button', { class: 'play', type: 'submit' }, plan.priceRsd ? `Оплатить ${plan.priceRsd} дин ↗` : `Заказать ${product} ↗`);
+  const kindTab = (value, text) => el('a', { href: `#/studio/${plan.id}/${value}`, 'aria-current': kind === value ? 'page' : 'false' }, text);
 
   async function onSubmit(event) {
     event.preventDefault();
     notice.replaceChildren();
     const draft = {
+      kind,
       prompts: prompts.values(),
       descriptions: descriptions?.values() ?? [],
       imagePrompts: images?.prompts() ?? [],
       videoPrompts: videos?.prompts() ?? [],
-      formats: formats.values(),
+      formats: formats?.values() ?? [],
     };
     const imageFiles = images?.files() ?? [];
     const videoFiles = videos?.files() ?? [];
@@ -326,12 +337,13 @@ function viewStudio(planId) {
   return el('section', { class: 'narrow page' },
     setupBanner(),
     el('div', { class: 'section-kicker' }, `План ${plan.name}`),
-    el('h1', {}, plan.priceRsd ? 'Опиши свою игру' : 'Попробуй бесплатно'),
+    el('h1', {}, plan.priceRsd ? `Опиши ${isSite ? 'свой сайт' : 'свою игру'}` : 'Попробуй бесплатно'),
     el('p', { class: 'lead' }, plan.priceRsd
-      ? 'Заполни форму и оплати. После оплаты мы сделаем игру вручную, а файл и инструкция появятся в разделе «Мои игры».'
-      : 'Напиши промт и выбери формат. Мы сделаем игру вручную, а файл и инструкция появятся в разделе «Мои игры».'),
+      ? `Заполни форму и оплати. После оплаты мы сделаем ${product} вручную, а файл и инструкция появятся в разделе «Мои заказы».`
+      : `Напиши промт. Мы сделаем ${product} вручную, а файл и инструкция появятся в разделе «Мои заказы».`),
+    el('nav', { class: 'tabs', 'aria-label': 'Что заказать' }, kindTab('game', 'Игра'), kindTab('site', 'Сайт')),
     el('form', { class: 'panel', onsubmit: onSubmit, novalidate: true },
-      prompts.node, descriptions?.node ?? null, images?.node ?? null, videos?.node ?? null, formats.node,
+      prompts.node, descriptions?.node ?? null, images?.node ?? null, videos?.node ?? null, formats?.node ?? null,
       el('div', { class: 'submit' },
         plan.priceRsd ? el('div', { class: 'total' }, 'К оплате: ', el('strong', {}, `${plan.priceRsd} дин`), note ? ` ${note}` : '') : el('span'),
         submit),
@@ -342,7 +354,7 @@ function viewStudio(planId) {
 function jobCard(job) {
   const [label, tone] = STATUS[job.status] ?? [job.status, ''];
   const notes = {
-    queued: 'Заявка принята. Игру делают вручную, файл и инструкция появятся здесь, когда она будет готова.',
+    queued: 'Заявка принята. Заказ делают вручную, файл и инструкция появятся здесь, когда он будет готов.',
     failed: job.error || 'Что-то пошло не так.',
   };
   const download = (path, name, text, className) => el('button', {
@@ -356,7 +368,7 @@ function jobCard(job) {
   }, text);
   return el('article', { class: 'panel job' },
     el('div', { class: 'job-head' },
-      el('div', {}, el('div', { class: 'meta' }, `${PLANS[job.plan]?.name ?? job.plan} · ${job.formats.map((f) => `.${f}`).join(', ')}`), el('h3', {}, job.title || 'Новая игра')),
+      el('div', {}, el('div', { class: 'meta' }, `${PLANS[job.plan]?.name ?? job.plan} · ${job.formats.map((f) => `.${f}`).join(', ')}`), el('h3', {}, job.title || (job.formats.includes(SITE_FORMAT) ? 'Новый сайт' : 'Новая игра'))),
       el('span', { class: `badge ${tone}` }, label)),
     notes[job.status] ? el('p', { class: 'job-note' }, notes[job.status]) : null,
     job.status === 'awaiting_payment' && job.checkout_url ? el('div', { class: 'downloads' }, el('a', { class: 'play', href: job.checkout_url }, 'Оплатить ↗')) : null,
@@ -372,7 +384,7 @@ function viewGames() {
     if (!list.isConnected) return;
     try {
       const jobs = await api.listJobs(state.user);
-      list.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [el('div', { class: 'panel empty' }, 'Здесь появятся твои игры.', el('br'), el('a', { class: 'play', href: '#/' }, 'Выбрать план ↗'))]));
+      list.replaceChildren(...(jobs.length ? jobs.map(jobCard) : [el('div', { class: 'panel empty' }, 'Здесь появятся твои заказы.', el('br'), el('a', { class: 'play', href: '#/' }, 'Выбрать план ↗'))]));
       if (jobs.some((job) => ['queued', 'awaiting_payment'].includes(job.status))) pollTimer = setTimeout(refresh, 6000);
     } catch (failure) {
       list.replaceChildren(message('error', failure.message));
@@ -380,7 +392,7 @@ function viewGames() {
   }
   queueMicrotask(refresh);
   return el('section', { class: 'narrow page' },
-    el('div', { class: 'section-kicker' }, 'Твоя коллекция'), el('h1', {}, 'Мои игры'),
+    el('div', { class: 'section-kicker' }, 'Твоя коллекция'), el('h1', {}, 'Мои заказы'),
     el('p', { class: 'lead' }, 'Готовые файлы появятся здесь, страница обновляется сама.'), list);
 }
 
@@ -417,12 +429,12 @@ function orderCard(job) {
   }, 'Скопировать номер');
   return el('article', { class: 'panel job' },
     el('div', { class: 'job-head' },
-      el('div', {}, el('div', { class: 'meta' }, `${PLANS[job.plan]?.name ?? job.plan} · ${job.formats.map((f) => `.${f}`).join(', ')}`),
+      el('div', {}, el('div', { class: 'meta' }, `${order.kind === 'site' ? 'Сайт' : 'Игра'} · ${PLANS[job.plan]?.name ?? job.plan} · ${job.formats.map((f) => `.${f}`).join(', ')}`),
         el('h3', {}, new Date(job.created_at).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }))),
       el('span', { class: `badge ${tone}` }, label)),
     el('p', { class: 'job-note' }, `Заказчик: ${job.customer_email || 'неизвестен'}`),
     el('p', { class: 'job-note order-id' }, job.id),
-    orderSection('Промт игры', order.prompts),
+    orderSection(order.kind === 'site' ? 'Промт сайта' : 'Промт игры', order.prompts),
     orderSection('Описания', order.descriptions),
     orderSection('Промты картинок', order.imagePrompts),
     orderSection('Промты видео', order.videoPrompts),
@@ -452,7 +464,7 @@ function viewOrders() {
 
 async function route() {
   clearTimeout(pollTimer);
-  const [, page, param] = (location.hash || '#/').split('/');
+  const [, page, param, extra] = (location.hash || '#/').split('/');
   const needsAccount = page === 'studio' || page === 'games' || page === 'orders';
   if (needsAccount && !state.user) {
     location.hash = `#/login/${encodeURIComponent(location.hash)}`;
@@ -462,7 +474,7 @@ async function route() {
     location.hash = '#/';
     return;
   }
-  const view = page === 'studio' ? viewStudio(param)
+  const view = page === 'studio' ? viewStudio(param, extra === 'site' ? 'site' : 'game')
     : page === 'orders' ? viewOrders()
     : page === 'games' ? viewGames()
     : page === 'login' ? viewLogin(location.hash.split('/').slice(2).join('/') ? decodeURIComponent(location.hash.split('/').slice(2).join('/')) : '')

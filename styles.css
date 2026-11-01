@@ -1,6 +1,8 @@
 /* Те же цвета, шрифт и формы, что на FreasyGames. */
 :root { color-scheme: dark; font-family: Manrope, system-ui, sans-serif; background: #111321; color: #f8f7ff; }
 * { box-sizing: border-box; }
+/* .ghost и .drop задают display, поэтому без этого правила атрибут hidden на них не действует. */
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100vh; display: flex; flex-direction: column; background: radial-gradient(circle at 50% -12%, #3d326a 0, #181a30 31%, #111321 63%); background-attachment: fixed; }
 main { flex: 1; }
@@ -64,6 +66,8 @@ h3 { margin: 9px 0 6px; font-size: 27px; line-height: 1.2; letter-spacing: -.045
 .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: #131521; border-radius: 12px; margin-bottom: 20px; }
 .tabs button { background: none; border: 0; border-radius: 9px; padding: 10px; font-size: 13px; font-weight: 800; color: #aaa8bb; }
 .tabs button[aria-pressed="true"] { background: #bca0ff; color: #171225; }
+.tabs a { text-align: center; border-radius: 9px; padding: 10px; font-size: 13px; font-weight: 800; color: #aaa8bb; }
+.tabs a[aria-current="page"] { background: #bca0ff; color: #171225; }
 
 .field { display: grid; gap: 7px; margin-bottom: 16px; }
 .field label, .group-title { font-size: 13px; font-weight: 800; color: #d1cde5; }
@@ -130,6 +134,8 @@ footer strong { color: #c0a7ff; }
 }
 @media (max-width: 480px) {
   .wrap, .narrow { width: calc(100% - 32px); }
+  .topbar { flex-wrap: wrap; padding: 14px 0; gap: 10px; }
+  .nav { flex-wrap: wrap; }
   .brand { font-size: 17px; }
   .nav-link { padding: 9px 11px; font-size: 12px; }
   .panel, .card { padding: 19px; }

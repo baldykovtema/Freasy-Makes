@@ -1,5 +1,7 @@
 // Единственный источник правды о планах: этот файл импортируют и сайт (app.js), и Edge Function (create-job).
 export const FORMATS = ['exe', 'dmg', 'apk'];
+// Сайт заказчик получает архивом, поэтому формат у такого заказа один и выбирать его не нужно.
+export const SITE_FORMAT = 'zip';
 
 // Пока оплата не подключена, платные планы показываются с пометкой «Скоро» и не принимаются сервером.
 export const PAYMENTS_ENABLED = false;
@@ -32,10 +34,11 @@ export function validateOrder(planId, input = {}) {
   const imageUploads = texts(input.imageUploads);
   const videoPrompts = texts(input.videoPrompts);
   const videoUploads = texts(input.videoUploads);
-  const formats = [...new Set(texts(input.formats))];
+  const kind = input.kind === 'site' ? 'site' : 'game';
+  const formats = kind === 'site' ? [SITE_FORMAT] : [...new Set(texts(input.formats))];
 
-  if (!prompts.length) errors.push('Напиши промт игры');
-  if (prompts.length > plan.prompts) errors.push(`Промтов игры — не больше ${plan.prompts}`);
+  if (!prompts.length) errors.push(kind === 'site' ? 'Напиши промт сайта' : 'Напиши промт игры');
+  if (prompts.length > plan.prompts) errors.push(`Промтов — не больше ${plan.prompts}`);
   if (descriptions.length > plan.descriptions) errors.push(`Описаний — не больше ${plan.descriptions}`);
   if (imagePrompts.length > plan.imagePrompts) errors.push(`Промтов картинок — не больше ${plan.imagePrompts}`);
   if (imageUploads.length > plan.imageUploads) errors.push(`Своих картинок — не больше ${plan.imageUploads}`);
@@ -46,9 +49,11 @@ export function validateOrder(planId, input = {}) {
   if ([...prompts, ...descriptions, ...imagePrompts, ...videoPrompts].some((text) => text.length > LIMITS.textChars)) {
     errors.push(`Один текст — не длиннее ${LIMITS.textChars} символов`);
   }
-  if (!formats.length) errors.push('Выбери формат игры');
-  if (formats.length > plan.formats) errors.push(`Форматов — не больше ${plan.formats}`);
-  if (formats.some((format) => !FORMATS.includes(format))) errors.push('Неизвестный формат игры');
+  if (kind === 'game') {
+    if (!formats.length) errors.push('Выбери формат игры');
+    if (formats.length > plan.formats) errors.push(`Форматов — не больше ${plan.formats}`);
+    if (formats.some((format) => !FORMATS.includes(format))) errors.push('Неизвестный формат игры');
+  }
 
-  return { order: { prompts, descriptions, imagePrompts, imageUploads, videoPrompts, videoUploads, formats }, errors };
+  return { order: { kind, prompts, descriptions, imagePrompts, imageUploads, videoPrompts, videoUploads, formats }, errors };
 }
