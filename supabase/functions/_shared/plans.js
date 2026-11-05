@@ -8,8 +8,9 @@ export const PAYMENTS_ENABLED = false;
 
 export const PLANS = {
   free: { id: 'free', name: 'Бесплатно', priceRsd: 0, prompts: 1, descriptions: 0, imagePrompts: 0, imageUploads: 0, videos: 0, formats: 1 },
-  pro: { id: 'pro', name: 'Pro', priceRsd: 50, prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
-  max: { id: 'max', name: 'Max', priceRsd: 150, prompts: 2, descriptions: 5, imagePrompts: 15, imageUploads: 5, videos: 3, formats: 2 },
+  // Lemon Squeezy берёт около 5% и 0,5 $ с покупки, поэтому цена заметно выше этой комиссии.
+  pro: { id: 'pro', name: 'Pro', priceRsd: 400, prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
+  max: { id: 'max', name: 'Max', priceRsd: 1000, prompts: 2, descriptions: 5, imagePrompts: 15, imageUploads: 5, videos: 3, formats: 2 },
 };
 
 export const LIMITS = {
