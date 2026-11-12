@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#14122b">
+<title>Тест — проверь себя</title>
+<style>
+  :root { --bg: #14122b; --card: #1f1c3d; --line: #ffffff1a; --text: #f6f4ff; --muted: #aaa6c8; --a: #8b7bff; --b: #4fd1c5; --ok: #3ddc97; --bad: #ff6b81; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--text); min-width: 320px;
+    background: radial-gradient(circle at 80% -10%, #3a2f7a 0, transparent 45%), radial-gradient(circle at 0% 30%, #1d4b5a 0, transparent 35%), var(--bg); background-attachment: fixed; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .wrap { width: min(1040px, calc(100% - 32px)); margin-inline: auto; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 76px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 21px; letter-spacing: -.03em; }
+  .logo i { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-style: normal; background: linear-gradient(135deg, var(--a), var(--b)); color: #14122b; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  nav a { padding: 9px 14px; border-radius: 100px; border: 1px solid var(--line); color: var(--muted); font-size: 14px; font-weight: 600; }
+  nav a:hover { color: var(--text); background: #ffffff10; }
+  .hero { padding: 70px 0 60px; text-align: center; }
+  .hero h1 { font-size: clamp(40px, 8vw, 76px); line-height: 1.05; margin: 0 0 18px; letter-spacing: -.05em; }
+  .hero h1 span { background: linear-gradient(120deg, var(--a), var(--b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: var(--muted); font-size: clamp(16px, 2.2vw, 19px); max-width: 600px; margin: 0 auto 28px; line-height: 1.6; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 14px; padding: 14px 22px; font-weight: 800; background: linear-gradient(120deg, var(--a), var(--b)); color: #14122b; transition: transform .15s; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn.ghost { background: #ffffff12; color: var(--text); border: 1px solid var(--line); }
+  .stats { display: flex; justify-content: center; gap: 28px; flex-wrap: wrap; margin-top: 34px; color: var(--muted); font-size: 14px; }
+  .stats b { display: block; color: var(--text); font-size: 26px; }
+  section { padding: 40px 0; }
+  h2 { font-size: clamp(26px, 4vw, 36px); margin: 0 0 8px; letter-spacing: -.03em; }
+  .sub { color: var(--muted); margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 10px; transition: transform .2s, border-color .2s; }
+  .card:hover { transform: translateY(-4px); border-color: #8b7bff88; }
+  .card .ico { font-size: 34px; }
+  .card h3 { margin: 0; font-size: 20px; }
+  .card p { margin: 0; color: var(--muted); line-height: 1.5; flex: 1; }
+  .card .meta { font-size: 13px; color: var(--b); font-weight: 700; }
+  .best { font-size: 13px; color: var(--muted); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; counter-reset: s; }
+  .steps div { padding: 20px; border-radius: 18px; border: 1px dashed var(--line); }
+  .steps div::before { counter-increment: s; content: counter(s); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #8b7bff33; color: var(--a); font-weight: 800; margin-bottom: 10px; }
+  .steps b { display: block; margin-bottom: 4px; }
+  .steps span { color: var(--muted); font-size: 15px; }
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 20px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 700; }
+  details p { color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+  footer { border-top: 1px solid var(--line); margin-top: 40px; padding: 24px 0 36px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+  /* окно теста */
+  .modal { position: fixed; inset: 0; background: #0a0918cc; backdrop-filter: blur(6px); display: grid; place-items: center; padding: 16px; z-index: 10; }
+  .modal[hidden] { display: none; }
+  .quiz { width: min(620px, 100%); background: var(--card); border: 1px solid #8b7bff55; border-radius: 24px; padding: 26px; box-shadow: 0 30px 80px #0008; }
+  .qtop { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; color: var(--muted); font-size: 14px; }
+  .close { background: none; border: 0; font-size: 24px; color: var(--muted); padding: 0 4px; }
+  .bar { height: 8px; border-radius: 10px; background: #ffffff14; overflow: hidden; margin-bottom: 20px; }
+  .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--a), var(--b)); transition: width .3s; }
+  .question { font-size: clamp(19px, 3vw, 23px); font-weight: 800; margin: 0 0 18px; line-height: 1.3; }
+  .answers { display: grid; gap: 10px; }
+  .answers button { text-align: left; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: #ffffff08; font-weight: 600; transition: background .15s, border-color .15s; }
+  .answers button:hover:not(:disabled) { background: #ffffff14; border-color: #8b7bff88; }
+  .answers button.ok { background: #3ddc9726; border-color: var(--ok); }
+  .answers button.bad { background: #ff6b8126; border-color: var(--bad); }
+  .answers button:disabled { cursor: default; }
+  .explain { min-height: 22px; margin: 14px 0 0; color: var(--muted); font-size: 15px; }
+  .qfoot { display: flex; justify-content: flex-end; margin-top: 16px; }
+  .result { text-align: center; }
+  .result .big { font-size: 64px; font-weight: 900; background: linear-gradient(120deg, var(--a), var(--b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .result .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+
+  @media (max-width: 800px) { .grid, .steps { grid-template-columns: 1fr; } nav a:not(:last-child) { display: none; } }
+</style>
+</head>
+<body>
+  <header class="wrap">
+    <a class="logo" href="#top"><i>✓</i> Тест</a>
+    <nav><a href="#tests">Тесты</a><a href="#how">Как это работает</a><a href="#faq">Вопросы</a><a href="#tests">Начать</a></nav>
+  </header>
+
+  <main id="top">
+    <section class="wrap hero">
+      <h1>Проверь себя за <span>3 минуты</span></h1>
+      <p>Короткие тесты на эрудицию, логику и знание игр. Отвечай на вопросы, узнавай интересные факты и смотри свой результат сразу.</p>
+      <a class="btn" href="#tests">Выбрать тест ↓</a>
+      <div class="stats"><div><b id="statTests">3</b>теста</div><div><b id="statQuestions">0</b>вопросов</div><div><b id="statDone">0</b>пройдено тобой</div></div>
+    </section>
+
+    <section class="wrap" id="tests">
+      <h2>Тесты</h2>
+      <p class="sub">Выбери тему. Твой лучший результат сохранится в этом браузере.</p>
+      <div class="grid" id="cards"></div>
+    </section>
+
+    <section class="wrap" id="how">
+      <h2>Как это работает</h2>
+      <p class="sub">Всё просто — регистрироваться не нужно.</p>
+      <div class="steps">
+        <div><b>Выбери тест</b><span>Космос, логика или видеоигры — в каждом по 6 вопросов.</span></div>
+        <div><b>Отвечай</b><span>После ответа сразу видно, правильно ли, и короткое пояснение.</span></div>
+        <div><b>Смотри результат</b><span>В конце — счёт, оценка и твой лучший результат по теме.</span></div>
+      </div>
+    </section>
+
+    <section class="wrap" id="faq">
+      <h2>Вопросы</h2>
+      <p class="sub">Описание тест — коротко о сайте.</p>
+      <details><summary>Сколько времени занимает тест?</summary><p>Обычно 2–3 минуты: 6 вопросов с вариантами ответов.</p></details>
+      <details><summary>Где хранятся мои результаты?</summary><p>Только в твоём браузере. Мы ничего никуда не отправляем.</p></details>
+      <details><summary>Можно пройти тест ещё раз?</summary><p>Да, сколько угодно. Вопросы и ответы каждый раз перемешиваются.</p></details>
+    </section>
+  </main>
+
+  <footer class="wrap"><span>© Тест — проверь себя</span><a href="#top">Наверх ↑</a></footer>
+
+  <div class="modal" id="modal" hidden>
+    <div class="quiz" role="dialog" aria-modal="true" aria-labelledby="qTitle">
+      <div class="qtop"><span id="qTitle"></span><button class="close" type="button" id="close" aria-label="Закрыть">✕</button></div>
+      <div id="body"></div>
+    </div>
+  </div>
+
+<script>
+const TESTS = [
+  { id: 'space', ico: '🚀', title: 'Космос', text: 'Планеты, звёзды и немного физики.', questions: [
+    ['Какая планета ближе всех к Солнцу?', ['Меркурий', 'Венера', 'Марс', 'Земля'], 'Меркурий — самая близкая к Солнцу и самая маленькая планета.'],
+    ['Как называется наша галактика?', ['Млечный Путь', 'Андромеда', 'Треугольник', 'Сомбреро'], 'Мы живём в галактике Млечный Путь.'],
+    ['Какая планета самая большая?', ['Юпитер', 'Сатурн', 'Нептун', 'Уран'], 'Юпитер больше всех остальных планет вместе взятых.'],
+    ['Кто первым полетел в космос?', ['Юрий Гагарин', 'Нил Армстронг', 'Герман Титов', 'Алексей Леонов'], 'Юрий Гагарин, 12 апреля 1961 года.'],
+    ['Сколько примерно идёт свет от Солнца до Земли?', ['8 минут', '8 секунд', '8 часов', '8 дней'], 'Около 8 минут 20 секунд.'],
+    ['Какую планету называют Красной?', ['Марс', 'Венеру', 'Юпитер', 'Меркурий'], 'Марс красный из-за оксида железа — по сути, ржавчины.'],
+  ]},
+  { id: 'logic', ico: '🧩', title: 'Логика', text: 'Задачки на сообразительность.', questions: [
+    ['Продолжи ряд: 2, 4, 8, 16, …', ['32', '24', '18', '20'], 'Каждое число вдвое больше предыдущего.'],
+    ['Что тяжелее: килограмм ваты или килограмм железа?', ['Одинаково', 'Железо', 'Вата', 'Зависит от погоды'], 'Килограмм есть килограмм.'],
+    ['У отца 3 дочери, у каждой есть брат. Сколько всего детей?', ['4', '6', '3', '7'], 'Брат у всех дочерей один и тот же.'],
+    ['Сколько месяцев в году имеют 28 дней?', ['Все 12', '1', '2', '6'], 'В каждом месяце есть 28-е число.'],
+    ['Продолжи ряд: 1, 1, 2, 3, 5, 8, …', ['13', '11', '12', '10'], 'Это числа Фибоначчи: 5 + 8 = 13.'],
+    ['Если вчера было воскресенье, какой день будет послезавтра?', ['Среда', 'Вторник', 'Четверг', 'Понедельник'], 'Сегодня понедельник, значит послезавтра — среда.'],
+  ]},
+  { id: 'games', ico: '🎮', title: 'Видеоигры', text: 'Немного об играх и о том, как их делают.', questions: [
+    ['Что значит FPS в играх?', ['Кадры в секунду', 'Быстрый игровой сервер', 'Файл сохранения', 'Режим паузы'], 'Frames Per Second — сколько кадров показывается за секунду.'],
+    ['Как называют уровень, который проходит сам игрок, а не сюжет?', ['Пользовательский', 'Боссовый', 'Обучающий', 'Скрытый'], 'Уровни из редакторов игроков называют пользовательскими.'],
+    ['Что такое «баг»?', ['Ошибка в программе', 'Бонус', 'Секретный уровень', 'Новый персонаж'], 'Слово «bug» — жучок; так называют ошибки в коде.'],
+    ['На чём обычно делают браузерные игры?', ['HTML и JavaScript', 'Только на C++', 'На Excel', 'На SQL'], 'Браузер понимает HTML, CSS и JavaScript.'],
+    ['Что такое «хитбокс»?', ['Область столкновений объекта', 'Коробка с призами', 'Тип контроллера', 'Музыкальный трек'], 'Хитбокс определяет, где объект «касается» других.'],
+    ['Что означает NPC?', ['Персонаж, которым управляет игра', 'Новый игрок', 'Сетевой режим', 'Код читов'], 'Non-Player Character — неигровой персонаж.'],
+  ]},
+];
+
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const best = store.get('test-best') || {};
+const $ = (id) => document.getElementById(id);
+const shuffle = (a) => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+function renderCards() {
+  $('cards').innerHTML = '';
+  for (const t of TESTS) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div class="ico">${t.ico}</div><h3>${t.title}</h3><p>${t.text}</p><div class="meta">${t.questions.length} вопросов</div>
+      <div class="best">${best[t.id] != null ? `Лучший результат: ${best[t.id]} из ${t.questions.length}` : 'Ещё не пройден'}</div>`;
+    const b = document.createElement('button');
+    b.className = 'btn'; b.type = 'button'; b.textContent = best[t.id] != null ? 'Пройти ещё раз' : 'Начать тест';
+    b.onclick = () => start(t);
+    card.appendChild(b);
+    $('cards').appendChild(card);
+  }
+  $('statQuestions').textContent = TESTS.reduce((s, t) => s + t.questions.length, 0);
+  $('statDone').textContent = Object.keys(best).length;
+}
+
+// Короткий звук через WebAudio: выше — правильно, ниже — ошибка.
+let audio;
+function beep(ok) {
+  try {
+    audio ??= new AudioContext();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = ok ? 880 : 220; o.type = ok ? 'sine' : 'square';
+    g.gain.setValueAtTime(.08, audio.currentTime); g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + .25);
+    o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime + .25);
+  } catch {}
+}
+
+let quiz;
+function start(test) {
+  quiz = { test, order: shuffle(test.questions), i: 0, score: 0 };
+  $('qTitle').textContent = `${test.ico} ${test.title}`;
+  $('modal').hidden = false;
+  document.body.style.overflow = 'hidden';
+  showQuestion();
+}
+function close() { $('modal').hidden = true; document.body.style.overflow = ''; }
+
+function showQuestion() {
+  const [q, answers, why] = quiz.order[quiz.i];
+  const right = answers[0];
+  const body = $('body');
+  body.innerHTML = `<div class="bar"><i style="width:${(quiz.i / quiz.order.length) * 100}%"></i></div>
+    <div class="qtop" style="margin:0 0 8px"><span>Вопрос ${quiz.i + 1} из ${quiz.order.length}</span><span>Счёт: ${quiz.score}</span></div>
+    <p class="question">${q}</p><div class="answers"></div><p class="explain"></p><div class="qfoot"></div>`;
+  const list = body.querySelector('.answers');
+  for (const a of shuffle(answers)) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = a;
+    b.onclick = () => {
+      const ok = a === right;
+      if (ok) quiz.score++;
+      beep(ok);
+      list.querySelectorAll('button').forEach((x) => { x.disabled = true; if (x.textContent === right) x.classList.add('ok'); });
+      if (!ok) b.classList.add('bad');
+      body.querySelector('.explain').textContent = (ok ? '✅ Верно! ' : '❌ Неверно. ') + why;
+      const next = document.createElement('button');
+      next.className = 'btn'; next.type = 'button';
+      next.textContent = quiz.i + 1 < quiz.order.length ? 'Дальше →' : 'Результат →';
+      next.onclick = () => { quiz.i++; quiz.i < quiz.order.length ? showQuestion() : showResult(); };
+      body.querySelector('.qfoot').appendChild(next);
+      next.focus();
+    };
+    list.appendChild(b);
+  }
+}
+
+function showResult() {
+  const { test, score } = quiz, total = quiz.order.length;
+  const ratio = score / total;
+  const verdict = ratio === 1 ? 'Идеально! Ты настоящий знаток 🏆' : ratio >= .67 ? 'Отлично! Почти всё верно 🔥' : ratio >= .34 ? 'Неплохо, но можно лучше 💪' : 'Попробуй ещё раз — получится! 🌱';
+  const record = best[test.id] == null || score > best[test.id];
+  if (record) { best[test.id] = score; store.set('test-best', best); }
+  $('body').innerHTML = `<div class="bar"><i style="width:100%"></i></div><div class="result">
+    <div class="big">${score} / ${total}</div><p class="question" style="margin:6px 0">${verdict}</p>
+    <p class="explain">${record ? 'Новый лучший результат!' : `Лучший результат: ${best[test.id]} из ${total}`}</p>
+    <div class="row"><button class="btn" type="button" id="again">Пройти ещё раз</button><button class="btn ghost" type="button" id="other">Другой тест</button></div></div>`;
+  $('again').onclick = () => start(test);
+  $('other').onclick = () => { close(); location.hash = '#tests'; };
+  renderCards();
+}
+
+$('close').onclick = close;
+$('modal').addEventListener('click', (e) => { if (e.target === $('modal')) close(); });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('modal').hidden) close(); });
+renderCards();
+</script>
+</body>
+</html>
