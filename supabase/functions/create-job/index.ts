@@ -1,43 +1,10 @@
-import { adminClient, corsHeaders, json, notifyOwner, requireEnv, SITE_URL } from '../_shared/common.ts';
-import { PAYMENTS_ENABLED, PLANS, validateOrder } from '../_shared/plans.js';
+import { adminClient, corsHeaders, json, notifyOwner } from '../_shared/common.ts';
+import { GUMROAD_STORE, PAYMENTS_ENABLED, PLANS, validateOrder } from '../_shared/plans.js';
 
-async function rsdTo(currency: string, amountRsd: number) {
-  const response = await fetch('https://open.er-api.com/v6/latest/RSD');
-  const rate = (await response.json())?.rates?.[currency];
-  if (!response.ok || !rate) throw new Error('Нет курса валют');
-  return amountRsd * rate;
-}
-
-// Lemon Squeezy сам показывает покупателю сумму в его валюте, сюда нужна цена в валюте магазина.
-async function createCheckout(jobId: string, planName: string, priceRsd: number, email: string) {
-  const storeCurrency = Deno.env.get('STORE_CURRENCY') ?? 'USD';
-  const customPrice = Math.ceil((await rsdTo(storeCurrency, priceRsd)) * 100);
-  const response = await fetch('https://api.lemonsqueezy.com/v1/checkouts', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${requireEnv('LEMONSQUEEZY_API_KEY')}`,
-      Accept: 'application/vnd.api+json',
-      'Content-Type': 'application/vnd.api+json',
-    },
-    body: JSON.stringify({
-      data: {
-        type: 'checkouts',
-        attributes: {
-          custom_price: customPrice,
-          product_options: { name: `Freasy Makes ${planName}`, redirect_url: `${SITE_URL}#/games` },
-          checkout_data: { email, custom: { job_id: jobId } },
-        },
-        relationships: {
-          store: { data: { type: 'stores', id: requireEnv('LEMONSQUEEZY_STORE_ID') } },
-          variant: { data: { type: 'variants', id: requireEnv('LEMONSQUEEZY_VARIANT_ID') } },
-        },
-      },
-    }),
-  });
-  const payload = await response.json();
-  const url = payload?.data?.attributes?.url;
-  if (!response.ok || !url) throw new Error(`Lemon Squeezy: ${response.status}`);
-  return url as string;
+// Покупатель платит на странице товара Gumroad. Номер заказа уходит в ссылке и возвращается
+// в уведомлении об оплате (url_params), по нему payment-webhook находит заказ.
+function checkoutUrl(jobId: string, permalink: string) {
+  return `${GUMROAD_STORE}/l/${permalink}?wanted=true&job_id=${encodeURIComponent(jobId)}`;
 }
 
 Deno.serve(async (request) => {
@@ -76,9 +43,10 @@ Deno.serve(async (request) => {
       await notifyOwner(db, job.id);
       return json({ job_id: job.id });
     }
-    const checkoutUrl = await createCheckout(job.id, plan.name, plan.priceRsd, user.email ?? '');
-    await db.from('jobs').update({ checkout_url: checkoutUrl }).eq('id', job.id);
-    return json({ job_id: job.id, checkout_url: checkoutUrl });
+    const url = checkoutUrl(job.id, plan.gumroad);
+    const { error: saveError } = await db.from('jobs').update({ checkout_url: url }).eq('id', job.id);
+    if (saveError) throw saveError;
+    return json({ job_id: job.id, checkout_url: url });
   } catch (failure) {
     console.error(failure);
     await db.from('jobs').update({ status: 'failed', error: 'Не удалось запустить заказ' }).eq('id', job.id);

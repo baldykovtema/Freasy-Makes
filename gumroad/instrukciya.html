@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Freasy Makes — что дальше после оплаты</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Manrope, system-ui, sans-serif; color: #1d1b2e; background: #fff; font-size: 10.5pt; line-height: 1.5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; padding: 16mm 17mm 14mm; position: relative; page-break-after: always; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  .head { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15pt; letter-spacing: -.04em; }
+  .logo { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(135deg,#bd8cff,#7b67fc); color: #171329; font-size: 16px; }
+  .hero { margin: 10mm 0 7mm; padding: 9mm 10mm; border-radius: 18px; color: #f8f7ff;
+    background: radial-gradient(circle at 85% -20%, #6a52c9 0, #2a2550 45%, #161829 100%); }
+  .kicker { font-size: 8pt; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; color: #c9b4ff; }
+  h1 { margin: 3mm 0 2mm; font-size: 25pt; line-height: 1.1; letter-spacing: -.05em; }
+  .hero p { margin: 0; color: #d6d1ee; max-width: 140mm; }
+  h2 { font-size: 14pt; letter-spacing: -.03em; margin: 7mm 0 3mm; }
+  .steps { display: grid; gap: 3.2mm; }
+  .step { display: grid; grid-template-columns: 11mm 1fr; gap: 4mm; align-items: start; padding: 4mm 5mm; border: 1px solid #e6e1f6; border-radius: 13px; background: #faf8ff; }
+  .num { width: 11mm; height: 11mm; border-radius: 50%; display: grid; place-items: center; background: #7b67fc; color: #fff; font-weight: 800; font-size: 12pt; }
+  .step b { display: block; font-size: 11pt; margin-bottom: .6mm; }
+  .step p { margin: 0; color: #4a4660; }
+  .badge { display: inline-block; padding: .2mm 2.4mm; border-radius: 100px; font-size: 8.5pt; font-weight: 800; white-space: nowrap; }
+  .wait { background: #eceaf2; color: #55516b; } .work { background: #fff1d6; color: #8a5a00; } .done { background: #dcf7e6; color: #17703d; }
+  .note { margin-top: 5mm; padding: 4mm 5mm; border-radius: 13px; background: #fff6e8; border: 1px solid #f3dcb2; color: #5c4317; }
+  .note b { color: #3d2c0b; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e6e1f6; border-radius: 13px; overflow: hidden; font-size: 10pt; }
+  th, td { text-align: left; padding: 2.4mm 4mm; border-bottom: 1px solid #eeeaf8; }
+  tr:last-child td { border-bottom: 0; }
+  th { background: #f3efff; font-weight: 800; }
+  td:not(:first-child), th:not(:first-child) { text-align: center; width: 30mm; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3.5mm; }
+  .card { padding: 4mm 5mm; border: 1px solid #e6e1f6; border-radius: 13px; }
+  .card b { display: block; margin-bottom: 1mm; }
+  .card ol { margin: 0; padding-left: 4.5mm; color: #4a4660; }
+  .card li { margin-bottom: .6mm; }
+  .foot { position: absolute; left: 17mm; right: 17mm; bottom: 10mm; display: flex; justify-content: space-between; color: #8a86a0; font-size: 8.5pt; border-top: 1px solid #eeeaf8; padding-top: 3mm; }
+  .compact { font-size: 9.6pt; }
+  .compact h2 { margin: 5mm 0 2.4mm; font-size: 13pt; }
+  .compact th, .compact td { padding: 1.8mm 4mm; }
+  .compact td:not(:first-child), .compact th:not(:first-child) { width: 40mm; }
+  .compact .card { padding: 3mm 4mm; }
+  .compact .step { padding: 3mm 4mm; }
+  .compact .steps { gap: 2.4mm; }
+  a { color: #5b45e0; font-weight: 700; text-decoration: none; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="head"><span class="logo">✦</span> Freasy Makes</div>
+  <div class="hero">
+    <div class="kicker">Спасибо за покупку</div>
+    <h1>Оплата прошла. Что дальше?</h1>
+    <p>Твой заказ уже связан с аккаунтом на сайте Freasy Makes. Ничего пересылать не нужно: игру или сайт делают вручную по твоей анкете, а готовый файл появится в разделе «Мои заказы».</p>
+  </div>
+
+  <h2>Как получить заказ</h2>
+  <div class="steps">
+    <div class="step"><span class="num">1</span><div><b>Вернись на сайт</b><p>Открой <a href="https://baldykovtema.github.io/Freasy-Makes/">baldykovtema.github.io/Freasy-Makes</a> и войди в тот же аккаунт, с которого оформлял заказ.</p></div></div>
+    <div class="step"><span class="num">2</span><div><b>Открой «Мои заказы»</b><p>Статус заказа сменится с <span class="badge wait">Ждёт оплаты</span> на <span class="badge work">В работе</span> сам, обычно за пару минут. Если не сменился — обнови страницу через несколько минут.</p></div></div>
+    <div class="step"><span class="num">3</span><div><b>Жди готовности</b><p>Заказ делает человек, а не автомат, поэтому нужно немного подождать. Когда всё будет готово, статус станет <span class="badge done">Готово</span>.</p></div></div>
+    <div class="step"><span class="num">4</span><div><b>Скачай файл и инструкцию</b><p>У готового заказа появятся две кнопки: «Скачать» — сам файл игры или сайта, и «Как запустить» — файл КАК_ЗАПУСТИТЬ.txt с управлением и правилами.</p></div></div>
+  </div>
+
+  <div class="note"><b>Важно.</b> Оплачивать нужно кнопкой «Оплатить» у заказа на сайте — так оплата сама находит твой заказ. Если ты купил товар прямо в магазине Gumroad, без заказа на сайте, ответь на письмо-чек от Gumroad и напиши почту своего аккаунта Freasy Makes — заказ привяжут вручную.</div>
+
+  <div class="foot"><span>Freasy Makes · игры и сайты на заказ</span><span>1 / 2</span></div>
+</section>
+
+<section class="page compact">
+  <div class="head"><span class="logo">✦</span> Freasy Makes</div>
+
+  <h2>Что входит в план</h2>
+  <table>
+    <tr><th></th><th>Pro</th><th>Max</th></tr>
+    <tr><td>Промты игры или сайта</td><td>1</td><td>2</td></tr>
+    <tr><td>Дополнительные описания</td><td>до 3</td><td>до 5</td></tr>
+    <tr><td>Картинки: промты или свои файлы</td><td>до 5</td><td>до 15 / 5 своих</td></tr>
+    <tr><td>Видео: промты или свои файлы</td><td>1</td><td>до 3</td></tr>
+    <tr><td>Форматы игры (.exe, .dmg, .apk)</td><td>1</td><td>2</td></tr>
+  </table>
+  <p style="color:#6b6782;margin:2mm 0 0">Сайт выдаётся одним архивом .zip с файлом index.html внутри.</p>
+
+  <h2>Как запустить готовую игру</h2>
+  <div class="grid">
+    <div class="card"><b>Windows · .exe</b><ol><li>Дважды нажми на файл.</li><li>Если появилось «Windows защитила ваш компьютер» — «Подробнее», затем «Выполнить в любом случае».</li></ol></div>
+    <div class="card"><b>macOS · .dmg</b><ol><li>Открой файл и перетащи игру в «Программы».</li><li>Если macOS не пускает — «Системные настройки → Конфиденциальность и безопасность → Всё равно открыть».</li></ol></div>
+    <div class="card"><b>Android · .apk</b><ol><li>Скачай файл на телефон и нажми на него.</li><li>Разреши установку из этого источника, при предупреждении — «Всё равно установить».</li><li>На iPhone APK не работает.</li></ol></div>
+    <div class="card"><b>Сайт · .zip</b><ol><li>Распакуй архив.</li><li>Открой index.html — сайт откроется в браузере.</li><li>Чтобы он был доступен всем, загрузи файлы на GitHub Pages или Netlify.</li></ol></div>
+  </div>
+  <p style="color:#6b6782;margin:3mm 0 0">Предупреждения Windows и macOS появляются потому, что у игр нет платной цифровой подписи. Это нормально для игр на заказ.</p>
+
+  <h2>Если что-то пошло не так</h2>
+  <div class="steps">
+    <div class="step"><span class="num">?</span><div><b>Статус долго «Ждёт оплаты»</b><p>Подожди 10–15 минут и обнови страницу. Если не помогло — ответь на письмо-чек от Gumroad и укажи почту аккаунта Freasy Makes.</p></div></div>
+    <div class="step"><span class="num">?</span><div><b>Файл не запускается или заказ не тот</b><p>Ответь на письмо-чек от Gumroad: опиши, что случилось, и приложи скриншот. Номер заказа виден в «Моих заказах».</p></div></div>
+  </div>
+
+  <div class="foot"><span>baldykovtema.github.io/Freasy-Makes</span><span>2 / 2</span></div>
+</section>
+
+</body>
+</html>

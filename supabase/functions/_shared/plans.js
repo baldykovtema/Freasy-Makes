@@ -3,14 +3,16 @@ export const FORMATS = ['exe', 'dmg', 'apk'];
 // Сайт заказчик получает архивом, поэтому формат у такого заказа один и выбирать его не нужно.
 export const SITE_FORMAT = 'zip';
 
-// Пока оплата не подключена, платные планы показываются с пометкой «Скоро» и не принимаются сервером.
-export const PAYMENTS_ENABLED = false;
+// Оплата идёт через Gumroad: у каждого платного плана свой товар в магазине chezyxa.gumroad.com.
+// Если выключить, платные планы показываются с пометкой «Скоро» и не принимаются сервером.
+export const PAYMENTS_ENABLED = true;
+export const GUMROAD_STORE = 'https://chezyxa.gumroad.com';
 
 export const PLANS = {
   free: { id: 'free', name: 'Бесплатно', priceRsd: 0, prompts: 1, descriptions: 0, imagePrompts: 0, imageUploads: 0, videos: 0, formats: 1 },
-  // Lemon Squeezy берёт около 5% и 0,5 $ с покупки, поэтому цена заметно выше этой комиссии.
-  pro: { id: 'pro', name: 'Pro', priceRsd: 400, prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
-  max: { id: 'max', name: 'Max', priceRsd: 1000, prompts: 2, descriptions: 5, imagePrompts: 15, imageUploads: 5, videos: 3, formats: 2 },
+  // gumroad — адрес товара: chezyxa.gumroad.com/l/<gumroad>. Цену покупатель платит ту, что стоит в Gumroad.
+  pro: { id: 'pro', name: 'Pro', priceRsd: 400, gumroad: 'freasy-makes-pro', prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
+  max: { id: 'max', name: 'Max', priceRsd: 1000, gumroad: 'freasy-makes-max', prompts: 2, descriptions: 5, imagePrompts: 15, imageUploads: 5, videos: 3, formats: 2 },
 };
 
 export const LIMITS = {

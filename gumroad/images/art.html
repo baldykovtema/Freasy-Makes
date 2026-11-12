@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Freasy Makes — обложки Gumroad</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: Manrope, system-ui, sans-serif; color: #f8f7ff; background: #111321; overflow: hidden; }
+  .art { position: relative; overflow: hidden; background: radial-gradient(circle at 78% 18%, var(--glow) 0, #231f45 38%, #111321 75%); }
+  .pro { --a: #bca0ff; --b: #7b67fc; --glow: #5a44c4; --chip: #bca0ff22; }
+  .max { --a: #ffd36f; --b: #ff7eb6; --glow: #9b3f86; --chip: #ffd36f1f; }
+  .grid { position: absolute; inset: 0; opacity: .18;
+    background-image: linear-gradient(#ffffff14 1px, transparent 1px), linear-gradient(90deg, #ffffff14 1px, transparent 1px);
+    background-size: 48px 48px; mask-image: radial-gradient(circle at 70% 40%, #000 0, transparent 70%); -webkit-mask-image: radial-gradient(circle at 70% 40%, #000 0, transparent 70%); }
+  .brand { display: inline-flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -.04em; }
+  .logo { display: grid; place-items: center; border-radius: 12px; background: linear-gradient(135deg, #bd8cff, #7b67fc); color: #171329; }
+  .plan { font-weight: 800; letter-spacing: -.07em; line-height: .9;
+    background: linear-gradient(120deg, var(--a), var(--b)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 100px; border: 1px solid color-mix(in srgb, var(--a) 45%, transparent); background: var(--chip); font-weight: 700; color: #ece8ff; white-space: nowrap; }
+  .shot { position: absolute; border-radius: 18px; overflow: hidden; border: 2px solid #ffffff30; box-shadow: 0 30px 70px #000a; background: #18192a; }
+  .shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  /* ---------- обложка 1280×720 ---------- */
+  .cover { width: 1280px; height: 720px; }
+  .cover .text { position: absolute; left: 80px; top: 74px; width: 560px; z-index: 2; }
+  .cover .brand { font-size: 28px; } .cover .logo { width: 44px; height: 44px; font-size: 22px; }
+  .cover .plan { font-size: 190px; margin: 46px 0 14px -6px; }
+  .cover .lead { font-size: 30px; font-weight: 700; line-height: 1.25; letter-spacing: -.03em; margin: 0 0 30px; }
+  .cover .chips { display: flex; flex-wrap: wrap; gap: 12px; }
+  .cover .chip { font-size: 19px; padding: 11px 18px; }
+  .cover .stack { position: absolute; right: -40px; top: 80px; width: 640px; height: 560px; transform: perspective(1400px) rotateY(-16deg) rotateX(6deg); }
+  .cover .s1 { width: 470px; height: 264px; right: 120px; top: 0; transform: rotate(-4deg); }
+  .cover .s2 { width: 470px; height: 264px; right: 0; top: 170px; transform: rotate(3deg); z-index: 2; }
+  .cover .s3 { width: 470px; height: 264px; right: 170px; top: 320px; transform: rotate(-2deg); z-index: 3; }
+
+  /* ---------- значок 600×600 ---------- */
+  .thumb { width: 600px; height: 600px; display: flex; flex-direction: column; justify-content: space-between; padding: 52px; }
+  .thumb .brand { font-size: 26px; position: relative; z-index: 2; } .thumb .logo { width: 42px; height: 42px; font-size: 21px; }
+  .thumb .plan { font-size: 220px; position: relative; z-index: 2; margin-left: -8px; }
+  .thumb .sub { font-size: 27px; font-weight: 700; letter-spacing: -.03em; position: relative; z-index: 2; color: #e4def9; }
+  .thumb .shot { width: 330px; height: 186px; right: -70px; top: 92px; transform: rotate(8deg); opacity: .9; }
+  .thumb .shot.b { right: -20px; top: 230px; transform: rotate(-6deg); opacity: .55; z-index: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+  const q = new URLSearchParams(location.search);
+  const plan = q.get('plan') === 'max' ? 'max' : 'pro', kind = q.get('kind') === 'thumb' ? 'thumb' : 'cover';
+  const img = (name) => `../../../FreasyGames/images/${name}`;
+  const data = {
+    pro: { name: 'Pro', lead: 'Игра или сайт по твоей идее —<br>с картинками и видео', sub: 'Игра или сайт на заказ',
+      chips: ['1 промт', 'до 3 описаний', 'до 5 картинок', '1 видео', '.exe · .dmg · .apk'], shots: ['prygun.jpg', 'klev.jpg', 'memecat-game.jpg'] },
+    max: { name: 'Max', lead: 'Самый большой заказ:<br>две идеи и два формата', sub: 'Максимум возможностей',
+      chips: ['2 промта', 'до 5 описаний', 'до 15 картинок', 'до 3 видео', '2 формата'], shots: ['rcfcg-game.png', 'liana.jpg', 'pvz-game.png'] },
+  }[plan];
+  const brand = '<div class="brand"><span class="logo">✦</span> Freasy Makes</div>';
+  const root = document.getElementById('root');
+  root.className = `art ${kind} ${plan}`;
+  root.innerHTML = kind === 'cover'
+    ? `<div class="grid"></div><div class="text">${brand}<div class="plan">${data.name}</div><p class="lead">${data.lead}</p>
+        <div class="chips">${data.chips.map((c) => `<span class="chip">${c}</span>`).join('')}</div></div>
+       <div class="stack">${data.shots.map((s, i) => `<div class="shot s${i + 1}"><img src="${img(s)}" alt=""></div>`).join('')}</div>`
+    : `<div class="grid"></div><div class="shot b"><img src="${img(data.shots[1])}" alt=""></div><div class="shot"><img src="${img(data.shots[0])}" alt=""></div>
+       ${brand}<div><div class="plan">${data.name}</div><div class="sub">${data.sub}</div></div>`;
+</script>
+</body>
+</html>

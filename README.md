@@ -7,7 +7,7 @@
 ## Как устроено
 
 - **Сайт** (`index.html`, `app.js`, `api.js`, `currency.js`, `styles.css`) работает на GitHub Pages.
-- **Supabase** отвечает за аккаунты, заказы и хранение файлов. Функция `create-job` проверяет заказ, `payment-webhook` принимает оплату от Lemon Squeezy.
+- **Supabase** отвечает за аккаунты, заказы и хранение файлов. Функция `create-job` проверяет заказ, `payment-webhook` принимает оплату от Gumroad.
 - **Письма** отправляет Resend: бесплатная заявка уходит сразу, платная после оплаты.
 - Лимиты и цены планов лежат в одном файле: `supabase/functions/_shared/plans.js`.
 
@@ -62,13 +62,18 @@ Project URL и anon key уже вписаны в `config.js`.
 ~/.local/bin/supabase secrets set --project-ref ywqxrbmgmvpbeytxjkpi ORDER_EMAIL=... RESEND_API_KEY=...
 ```
 
-### 4. Оплата
+### 4. Оплата (Gumroad)
 
-Создай товар в [Lemon Squeezy](https://lemonsqueezy.com) и вебхук на `https://ywqxrbmgmvpbeytxjkpi.supabase.co/functions/v1/payment-webhook` с событием `order_created`. Затем добавь секреты:
+Магазин: https://chezyxa.gumroad.com, товары `freasy-makes-pro` и `freasy-makes-max` (адреса товаров записаны в `supabase/functions/_shared/plans.js`, поле `gumroad`). Цену покупатель платит ту, что стоит в Gumroad.
+
+1. Gumroad → Settings → Advanced → **Ping endpoint**: `https://ywqxrbmgmvpbeytxjkpi.supabase.co/functions/v1/payment-webhook`.
+2. Там же → Applications → создай приложение → **Generate access token** и сохрани его:
 
 ```bash
-~/.local/bin/supabase secrets set --project-ref ywqxrbmgmvpbeytxjkpi LEMONSQUEEZY_API_KEY=... LEMONSQUEEZY_STORE_ID=... LEMONSQUEEZY_VARIANT_ID=... LEMONSQUEEZY_WEBHOOK_SECRET=...
+~/.local/bin/supabase secrets set --project-ref ywqxrbmgmvpbeytxjkpi GUMROAD_ACCESS_TOKEN=...
 ```
+
+Кнопка «Оплатить» ведёт на товар Gumroad с номером заказа в ссылке (`?job_id=`). После покупки Gumroad присылает Ping, функция перепроверяет покупку через Gumroad API (товар, возвраты) и переводит заказ в «В работе». Одна покупка оплачивает только один заказ. Покупателю после оплаты выдаётся PDF из `gumroad/`.
 
 ## Важно
 
