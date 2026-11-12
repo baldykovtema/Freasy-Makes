@@ -1,7 +1,7 @@
 // Файлы сайта подключаются с ?v=<дата>: меняй дату здесь и в index.html, когда меняешь код, иначе браузер может взять старую копию из кэша.
-import { api } from './api.js?v=2026-11-12b';
-import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency, usd } from './currency.js?v=2026-11-12b';
-import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js?v=2026-11-12b';
+import { api } from './api.js?v=2026-11-12c';
+import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency, usd } from './currency.js?v=2026-11-12c';
+import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js?v=2026-11-12c';
 
 const root = document.getElementById('app');
 const nav = document.getElementById('nav');
@@ -177,8 +177,24 @@ function viewLogin(next) {
   );
 }
 
-// Список полей с кнопкой «добавить». required: сколько строк показано сразу.
-function textList({ label, max, placeholder, required = 0 }) {
+// Черновик заказа: общий для «Игра» и «Сайт» и для всех планов, поэтому при переключении ничего не теряется.
+// Тексты переживают и обновление страницы (sessionStorage), файлы хранятся только в памяти вкладки.
+const DRAFT_KEY = 'freasy-studio-draft';
+const emptyDraft = () => ({ prompts: [], descriptions: [], imagePrompts: [], videoPrompts: [], imageFiles: [], videoFiles: [], imageMode: 'prompts', videoMode: 'prompts', formats: [] });
+let studioDraft = (() => {
+  try { return { ...emptyDraft(), ...JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}'), imageFiles: [], videoFiles: [] }; } catch { return emptyDraft(); }
+})();
+function storeDraft() {
+  const { imageFiles, videoFiles, ...texts } = studioDraft;
+  try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(texts)); } catch {}
+}
+function clearDraft() {
+  studioDraft = emptyDraft();
+  try { sessionStorage.removeItem(DRAFT_KEY); } catch {}
+}
+
+// Список полей с кнопкой «добавить». required: сколько строк показано сразу, initial — уже написанный текст.
+function textList({ label, max, placeholder, required = 0, initial = [] }) {
   const rows = el('div', {});
   const counter = el('span', { class: 'counter' });
   const add = el('button', { class: 'ghost', type: 'button', onclick: () => { addRow(); update(); rows.lastChild.querySelector('textarea').focus(); } }, '+ Добавить');
@@ -190,13 +206,15 @@ function textList({ label, max, placeholder, required = 0 }) {
       row.querySelector('textarea').setAttribute('aria-label', `${label} ${index + 1}`);
     });
   }
-  function addRow() {
+  function addRow(value = '') {
     const row = el('div', { class: 'row' },
-      el('textarea', { placeholder, maxLength: LIMITS.textChars }),
+      el('textarea', { placeholder, maxLength: LIMITS.textChars, value }),
       el('button', { class: 'remove', type: 'button', 'aria-label': 'Убрать', onclick: () => { row.remove(); update(); } }, '×'));
     rows.append(row);
   }
-  for (let index = 0; index < required; index += 1) addRow();
+  // Пустые строки черновика не переносим; лишнее сверх лимита плана тоже не помещается.
+  const filled = initial.filter((text) => String(text).trim()).slice(0, max);
+  for (let index = 0; index < Math.max(required, filled.length); index += 1) addRow(filled[index] ?? '');
   update();
   return {
     node: el('div', { class: 'group' }, el('div', { class: 'group-head' }, el('span', { class: 'group-title' }, label), counter), rows, add),
@@ -205,8 +223,8 @@ function textList({ label, max, placeholder, required = 0 }) {
   };
 }
 
-function fileList({ max, accept, types, maxBytes, label, onError }) {
-  const files = [];
+function fileList({ max, accept, types, maxBytes, label, onError, initial = [] }) {
+  const files = initial.slice(0, max);
   const list = el('div', {});
   const input = el('input', { type: 'file', accept, multiple: max > 1 });
   const drop = el('label', { class: 'drop' }, input, label);
@@ -225,13 +243,14 @@ function fileList({ max, accept, types, maxBytes, label, onError }) {
     input.value = '';
     redraw();
   });
+  redraw();
   return { node: el('div', {}, drop, list), files };
 }
 
 // Блок «промты или свои файлы» для картинок и видео.
-function mediaGroup({ title, promptLabel, placeholder, promptMax, fileMax, fileOptions, hint, onError }) {
-  const prompts = textList({ label: promptLabel, max: promptMax, placeholder, required: 0 });
-  const uploads = fileList({ max: fileMax, onError, ...fileOptions });
+function mediaGroup({ title, promptLabel, placeholder, promptMax, fileMax, fileOptions, hint, onError, initialPrompts = [], initialFiles = [], initialMode = 'prompts' }) {
+  const prompts = textList({ label: promptLabel, max: promptMax, placeholder, required: 0, initial: initialPrompts });
+  const uploads = fileList({ max: fileMax, onError, initial: initialFiles, ...fileOptions });
   let mode = 'prompts';
   const promptBody = el('div', {}, prompts.bare.rows, prompts.bare.add);
   const uploadBody = el('div', { hidden: true }, uploads.node);
@@ -246,6 +265,7 @@ function mediaGroup({ title, promptLabel, placeholder, promptMax, fileMax, fileO
     uploadBody.hidden = mode !== 'uploads';
     counter.textContent = `до ${mode === 'prompts' ? promptMax : fileMax}`;
   }
+  if (initialMode === 'uploads') pick('uploads');
   return {
     node: el('div', { class: 'group' },
       el('div', { class: 'group-head' }, el('span', { class: 'group-title' }, title), counter),
@@ -254,11 +274,13 @@ function mediaGroup({ title, promptLabel, placeholder, promptMax, fileMax, fileO
       promptBody, uploadBody),
     prompts: () => (mode === 'prompts' ? prompts.values() : []),
     files: () => (mode === 'uploads' ? uploads.files : []),
+    // Для черновика: всё, что введено в обоих режимах, и какой режим выбран.
+    draft: () => ({ prompts: prompts.values(), files: [...uploads.files], mode }),
   };
 }
 
-function formatPicker(max) {
-  const chosen = [];
+function formatPicker(max, initial = []) {
+  const chosen = initial.filter((format) => FORMATS.includes(format)).slice(0, max);
   const buttons = FORMATS.map((format) => el('button', {
     class: 'format', type: 'button', 'aria-pressed': 'false',
     onclick: () => {
@@ -268,6 +290,7 @@ function formatPicker(max) {
       buttons.forEach((button, position) => button.setAttribute('aria-pressed', String(chosen.includes(FORMATS[position]))));
     },
   }, el('strong', {}, `.${format}`), el('small', {}, FORMAT_LABELS[format])));
+  buttons.forEach((button, position) => button.setAttribute('aria-pressed', String(chosen.includes(FORMATS[position]))));
   return {
     node: el('div', { class: 'group' },
       el('div', { class: 'group-head' }, el('span', { class: 'group-title' }, max === 1 ? 'Формат игры' : `Форматы игры`), el('span', { class: 'counter' }, max === 1 ? 'выбери один' : `выбери до ${max}`)),
@@ -284,34 +307,45 @@ function viewStudio(planId, kind) {
   const notice = el('div', { 'aria-live': 'polite' });
   const showError = (text) => { notice.replaceChildren(message('error', text)); };
 
+  const saved = studioDraft;
   const prompts = textList({
-    label: isSite ? 'Промт сайта' : 'Промт игры', max: plan.prompts, required: 1,
+    label: isSite ? 'Промт сайта' : 'Промт игры', max: plan.prompts, required: 1, initial: saved.prompts,
     placeholder: isSite ? 'Например: сайт-визитка кофейни с меню и контактами' : 'Например: платформер про кота, который собирает рыбу на крышах',
   });
   const descriptions = plan.descriptions ? textList({
-    label: isSite ? 'Описание сайта' : 'Описание игры', max: plan.descriptions,
+    label: isSite ? 'Описание сайта' : 'Описание игры', max: plan.descriptions, initial: saved.descriptions,
     placeholder: isSite ? 'Страницы, разделы, цвета, настроение' : 'Правила, герои, уровни, настроение',
   }) : null;
   const images = plan.imagePrompts ? mediaGroup({
     title: 'Картинки', promptLabel: 'Промт картинки', placeholder: 'Что должно быть на картинке', promptMax: plan.imagePrompts, fileMax: plan.imageUploads,
     hint: `Свои картинки: PNG, JPG или WEBP, до ${LIMITS.imageBytes / 1024 / 1024} МБ каждая.`, onError: showError,
     fileOptions: { accept: LIMITS.imageTypes.join(','), types: LIMITS.imageTypes, maxBytes: LIMITS.imageBytes, label: 'Выбрать картинки' },
+    initialPrompts: saved.imagePrompts, initialFiles: saved.imageFiles, initialMode: saved.imageMode,
   }) : null;
   const videos = plan.videos ? mediaGroup({
     title: 'Видео', promptLabel: 'Промт видео', placeholder: 'Что должно происходить в видео', promptMax: plan.videos, fileMax: plan.videos,
     hint: `Своё видео: MP4 или WEBM, до ${LIMITS.videoBytes / 1024 / 1024} МБ каждое.`, onError: showError,
     fileOptions: { accept: LIMITS.videoTypes.join(','), types: LIMITS.videoTypes, maxBytes: LIMITS.videoBytes, label: 'Выбрать видео' },
+    initialPrompts: saved.videoPrompts, initialFiles: saved.videoFiles, initialMode: saved.videoMode,
   }) : null;
-  const formats = isSite ? null : formatPicker(plan.formats);
+  const formats = isSite ? null : formatPicker(plan.formats, saved.formats);
   const submit = el('button', { class: 'play', type: 'submit' }, plan.priceUsd ? `Оплатить ${usd(plan.priceUsd)} ↗` : `Заказать ${product} ↗`);
-  // Переключение «Игра / Сайт» пересоздаёт форму, поэтому сначала спрашиваем, если что-то уже написано.
-  const kindTab = (value, text) => el('a', {
-    href: `#/studio/${plan.id}/${value}`, 'aria-current': kind === value ? 'page' : 'false',
-    onclick: (event) => {
-      const typed = [...document.querySelectorAll('.panel textarea')].some((item) => item.value.trim());
-      if (kind !== value && typed && !confirm('Написанный текст сбросится. Переключиться?')) event.preventDefault();
-    },
-  }, text);
+
+  // Запоминаем всё введённое. То, чего нет в этой форме (например, видео на бесплатном плане или формат у сайта),
+  // остаётся в черновике как было и вернётся при переходе обратно.
+  // Если в черновике больше строк, чем помещается в этот план, лишние не показаны, но и не стираются.
+  const filled = (list) => list.filter((text) => String(text).trim());
+  const keep = (values, old, max) => [...filled(values), ...filled(old).slice(max)];
+  function saveDraft() {
+    const next = { ...studioDraft, prompts: keep(prompts.values(), studioDraft.prompts, plan.prompts) };
+    if (descriptions) next.descriptions = keep(descriptions.values(), studioDraft.descriptions, plan.descriptions);
+    if (images) { const d = images.draft(); next.imagePrompts = keep(d.prompts, studioDraft.imagePrompts, plan.imagePrompts); next.imageFiles = [...d.files, ...studioDraft.imageFiles.slice(plan.imageUploads)]; next.imageMode = d.mode; }
+    if (videos) { const d = videos.draft(); next.videoPrompts = keep(d.prompts, studioDraft.videoPrompts, plan.videos); next.videoFiles = [...d.files, ...studioDraft.videoFiles.slice(plan.videos)]; next.videoMode = d.mode; }
+    if (formats) next.formats = formats.values();
+    studioDraft = next;
+    storeDraft();
+  }
+  const kindTab = (value, text) => el('a', { href: `#/studio/${plan.id}/${value}`, 'aria-current': kind === value ? 'page' : 'false', onclick: saveDraft }, text);
 
   async function onSubmit(event) {
     event.preventDefault();
@@ -335,6 +369,7 @@ function viewStudio(planId, kind) {
       draft.imageUploads = await Promise.all(imageFiles.map(upload));
       draft.videoUploads = await Promise.all(videoFiles.map(upload));
       const result = await api.createJob(plan.id, draft);
+      clearDraft();
       if (result.checkout_url) location.href = result.checkout_url;
       else location.hash = '#/games';
     } catch (failure) {
@@ -352,7 +387,8 @@ function viewStudio(planId, kind) {
       ? `Заполни форму и оплати на странице Gumroad. После оплаты вернись в «Мои заказы»: статус сменится сам, мы сделаем ${product} вручную, а файл и инструкция появятся там же.`
       : `Напиши промт. Мы сделаем ${product} вручную, а файл и инструкция появятся в разделе «Мои заказы».`),
     el('nav', { class: 'tabs', 'aria-label': 'Что заказать' }, kindTab('game', 'Игра'), kindTab('site', 'Сайт')),
-    el('form', { class: 'panel', onsubmit: onSubmit, novalidate: true },
+    // input — набранный текст, change — выбранные файлы, click — форматы, «убрать» и переключатели (после клика, когда всё обновилось).
+    el('form', { class: 'panel', onsubmit: onSubmit, novalidate: true, oninput: saveDraft, onchange: () => setTimeout(saveDraft), onclick: () => setTimeout(saveDraft) },
       prompts.node, descriptions?.node ?? null, images?.node ?? null, videos?.node ?? null, formats?.node ?? null,
       el('div', { class: 'submit' },
         plan.priceUsd ? el('div', { class: 'total' }, 'К оплате: ', el('strong', {}, usd(plan.priceUsd)), note ? ` ${note}` : '') : el('span'),

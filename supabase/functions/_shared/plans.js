@@ -18,9 +18,10 @@ export const PLANS = {
 
 export const LIMITS = {
   textChars: 2000,
-  // Готовый файл игры должен пройти в лимит Supabase 50 МБ: 5×2 + 3×8 = 34 МБ плюс оболочка приложения.
-  imageBytes: 2 * 1024 * 1024,
-  videoBytes: 8 * 1024 * 1024,
+  // 50 МБ — предел одного файла на бесплатном Supabase (корзина uploads, миграция 0005).
+  // Готовая игра тоже должна быть меньше 50 МБ, поэтому большие видео заказчика перед вставкой в игру нужно сжимать.
+  imageBytes: 50 * 1024 * 1024,
+  videoBytes: 50 * 1024 * 1024,
   imageTypes: ['image/png', 'image/jpeg', 'image/webp'],
   videoTypes: ['video/mp4', 'video/webm'],
 };
