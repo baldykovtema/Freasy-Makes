@@ -9,10 +9,11 @@ export const PAYMENTS_ENABLED = true;
 export const GUMROAD_STORE = 'https://chezyxa.gumroad.com';
 
 export const PLANS = {
-  free: { id: 'free', name: 'Бесплатно', priceRsd: 0, prompts: 1, descriptions: 0, imagePrompts: 0, imageUploads: 0, videos: 0, formats: 1 },
-  // gumroad — адрес товара: chezyxa.gumroad.com/l/<gumroad>. Цену покупатель платит ту, что стоит в Gumroad.
-  pro: { id: 'pro', name: 'Pro', priceRsd: 400, gumroad: 'freasy-makes-pro', prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
-  max: { id: 'max', name: 'Max', priceRsd: 1000, gumroad: 'freasy-makes-max', prompts: 2, descriptions: 5, imagePrompts: 15, imageUploads: 5, videos: 3, formats: 2 },
+  free: { id: 'free', name: 'Бесплатно', priceUsd: 0, prompts: 1, descriptions: 0, imagePrompts: 0, imageUploads: 0, videos: 0, formats: 1 },
+  // Цена в долларах должна совпадать с ценой товара в Gumroad: покупатель платит именно её.
+  // gumroad — адрес товара: chezyxa.gumroad.com/l/<gumroad>.
+  pro: { id: 'pro', name: 'Pro', priceUsd: 3.99, gumroad: 'freasy-makes-pro', prompts: 1, descriptions: 3, imagePrompts: 5, imageUploads: 5, videos: 1, formats: 1 },
+  max: { id: 'max', name: 'Max', priceUsd: 9.99, gumroad: 'freasy-makes-max', prompts: 2, descriptions: 5, imagePrompts: 15, imageUploads: 5, videos: 3, formats: 2 },
 };
 
 export const LIMITS = {

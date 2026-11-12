@@ -1,6 +1,7 @@
-import { api } from './api.js';
-import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency } from './currency.js';
-import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js';
+// Файлы сайта подключаются с ?v=<дата>: меняй дату здесь и в index.html, когда меняешь код, иначе браузер может взять старую копию из кэша.
+import { api } from './api.js?v=2026-11-12b';
+import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency, usd } from './currency.js?v=2026-11-12b';
+import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js?v=2026-11-12b';
 
 const root = document.getElementById('app');
 const nav = document.getElementById('nav');
@@ -9,7 +10,7 @@ const STATUS = {
   awaiting_payment: ['Ждёт оплаты', ''],
   queued: ['В работе', 'work'],
   done: ['Готово', 'done'],
-  failed: ['Ошибка', 'failed'],
+  failed: ['Не выполнен', 'failed'],
 };
 
 const state = { user: null, admin: false, currency: detectCurrency(), rates: null };
@@ -66,19 +67,19 @@ function planFeatures(plan) {
 }
 
 function priceBlock(plan) {
-  if (!plan.priceRsd) return [el('div', { class: 'price' }, '0 дин'), el('div', { class: 'price-note' }, 'Один заказ в сутки')];
-  const { main, note } = formatPrice(plan.priceRsd, state.currency, state.rates);
-  return [el('div', { class: 'price' }, main), el('div', { class: 'price-note' }, note)];
+  if (!plan.priceUsd) return [el('div', { class: 'price' }, '$0'), el('div', { class: 'price-note' }, 'Один заказ в сутки')];
+  const { main, note } = formatPrice(plan.priceUsd, state.currency, state.rates);
+  return [el('div', { class: 'price' }, main), el('div', { class: 'price-note' }, note || 'Оплата картой или PayPal через Gumroad')];
 }
 
 function planCard(plan) {
-  const label = plan.priceRsd ? `${plan.name} ${plan.priceRsd} дин` : 'Попробовать бесплатно';
+  const label = plan.priceUsd ? `Заказать ${plan.name} за ${usd(plan.priceUsd)}` : 'Попробовать бесплатно';
   return el('article', { class: `card${plan.id === 'pro' ? ' featured' : ''}` },
-    el('div', { class: 'meta' }, plan.priceRsd ? 'За один заказ' : 'Без оплаты'),
+    el('div', { class: 'meta' }, plan.priceUsd ? 'За один заказ' : 'Без оплаты'),
     el('h3', {}, plan.name),
     priceBlock(plan),
     el('ul', { class: 'features' }, planFeatures(plan).map((text) => el('li', {}, text))),
-    plan.priceRsd && !PAYMENTS_ENABLED
+    plan.priceUsd && !PAYMENTS_ENABLED
       ? el('span', { class: 'play soon' }, `${plan.name}: скоро`)
       : el('a', { class: 'play', href: `#/studio/${plan.id}` }, `${label} ↗`),
   );
@@ -124,6 +125,8 @@ function viewHome() {
 }
 
 function viewLogin(next) {
+  // Уже вошёл — форма входа не нужна.
+  if (state.user) { location.hash = next || '#/games'; return []; }
   let mode = 'in';
   const email = el('input', { id: 'email', type: 'email', autocomplete: 'email', required: true });
   const password = el('input', { id: 'password', type: 'password', autocomplete: 'current-password', required: true, minLength: 6 });
@@ -277,7 +280,7 @@ function viewStudio(planId, kind) {
   const isSite = kind === 'site';
   const product = isSite ? 'сайт' : 'игру';
   const plan = PLANS[planId];
-  if (!plan || (plan.priceRsd && !PAYMENTS_ENABLED)) { location.hash = '#/'; return []; }
+  if (!plan || (plan.priceUsd && !PAYMENTS_ENABLED)) { location.hash = '#/'; return []; }
   const notice = el('div', { 'aria-live': 'polite' });
   const showError = (text) => { notice.replaceChildren(message('error', text)); };
 
@@ -300,8 +303,15 @@ function viewStudio(planId, kind) {
     fileOptions: { accept: LIMITS.videoTypes.join(','), types: LIMITS.videoTypes, maxBytes: LIMITS.videoBytes, label: 'Выбрать видео' },
   }) : null;
   const formats = isSite ? null : formatPicker(plan.formats);
-  const submit = el('button', { class: 'play', type: 'submit' }, plan.priceRsd ? `Оплатить ${plan.priceRsd} дин ↗` : `Заказать ${product} ↗`);
-  const kindTab = (value, text) => el('a', { href: `#/studio/${plan.id}/${value}`, 'aria-current': kind === value ? 'page' : 'false' }, text);
+  const submit = el('button', { class: 'play', type: 'submit' }, plan.priceUsd ? `Оплатить ${usd(plan.priceUsd)} ↗` : `Заказать ${product} ↗`);
+  // Переключение «Игра / Сайт» пересоздаёт форму, поэтому сначала спрашиваем, если что-то уже написано.
+  const kindTab = (value, text) => el('a', {
+    href: `#/studio/${plan.id}/${value}`, 'aria-current': kind === value ? 'page' : 'false',
+    onclick: (event) => {
+      const typed = [...document.querySelectorAll('.panel textarea')].some((item) => item.value.trim());
+      if (kind !== value && typed && !confirm('Написанный текст сбросится. Переключиться?')) event.preventDefault();
+    },
+  }, text);
 
   async function onSubmit(event) {
     event.preventDefault();
@@ -333,19 +343,19 @@ function viewStudio(planId, kind) {
     }
   }
 
-  const { note } = formatPrice(plan.priceRsd, state.currency, state.rates);
+  const { note } = formatPrice(plan.priceUsd, state.currency, state.rates);
   return el('section', { class: 'narrow page' },
     setupBanner(),
     el('div', { class: 'section-kicker' }, `План ${plan.name}`),
-    el('h1', {}, plan.priceRsd ? `Опиши ${isSite ? 'свой сайт' : 'свою игру'}` : 'Попробуй бесплатно'),
-    el('p', { class: 'lead' }, plan.priceRsd
-      ? `Заполни форму и оплати. После оплаты мы сделаем ${product} вручную, а файл и инструкция появятся в разделе «Мои заказы».`
+    el('h1', {}, plan.priceUsd ? `Опиши ${isSite ? 'свой сайт' : 'свою игру'}` : 'Попробуй бесплатно'),
+    el('p', { class: 'lead' }, plan.priceUsd
+      ? `Заполни форму и оплати на странице Gumroad. После оплаты вернись в «Мои заказы»: статус сменится сам, мы сделаем ${product} вручную, а файл и инструкция появятся там же.`
       : `Напиши промт. Мы сделаем ${product} вручную, а файл и инструкция появятся в разделе «Мои заказы».`),
     el('nav', { class: 'tabs', 'aria-label': 'Что заказать' }, kindTab('game', 'Игра'), kindTab('site', 'Сайт')),
     el('form', { class: 'panel', onsubmit: onSubmit, novalidate: true },
       prompts.node, descriptions?.node ?? null, images?.node ?? null, videos?.node ?? null, formats?.node ?? null,
       el('div', { class: 'submit' },
-        plan.priceRsd ? el('div', { class: 'total' }, 'К оплате: ', el('strong', {}, `${plan.priceRsd} дин`), note ? ` ${note}` : '') : el('span'),
+        plan.priceUsd ? el('div', { class: 'total' }, 'К оплате: ', el('strong', {}, usd(plan.priceUsd)), note ? ` ${note}` : '') : el('span'),
         submit),
       notice),
   );
@@ -354,22 +364,27 @@ function viewStudio(planId, kind) {
 function jobCard(job) {
   const [label, tone] = STATUS[job.status] ?? [job.status, ''];
   const notes = {
+    awaiting_payment: 'Заказ ждёт оплаты. Нажми «Оплатить» — после оплаты статус сменится сам через пару минут.',
     queued: 'Заявка принята. Заказ делают вручную, файл и инструкция появятся здесь, когда он будет готов.',
     failed: job.error || 'Что-то пошло не так.',
   };
+  const errorBox = el('div', { 'aria-live': 'polite' });
   const download = (path, name, text, className) => el('button', {
     class: className, type: 'button',
     onclick: async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
-      try { location.href = await api.downloadUrl(path, name); } catch (failure) { button.after(message('error', failure.message)); }
+      errorBox.replaceChildren();
+      try { location.href = await api.downloadUrl(path, name); } catch (failure) { errorBox.replaceChildren(message('error', failure.message)); }
       button.disabled = false;
     },
   }, text);
+  const created = job.created_at ? new Date(job.created_at).toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' }) : '';
   return el('article', { class: 'panel job' },
     el('div', { class: 'job-head' },
       el('div', {}, el('div', { class: 'meta' }, `${PLANS[job.plan]?.name ?? job.plan} · ${job.formats.map((f) => `.${f}`).join(', ')}`), el('h3', {}, job.title || (job.formats.includes(SITE_FORMAT) ? 'Новый сайт' : 'Новая игра'))),
       el('span', { class: `badge ${tone}` }, label)),
+    el('p', { class: 'job-note order-id' }, [created, `Заказ № ${job.id}`].filter(Boolean).join(' · ')),
     notes[job.status] ? el('p', { class: 'job-note' }, notes[job.status]) : null,
     job.status === 'awaiting_payment' && job.checkout_url ? el('div', { class: 'downloads' }, el('a', { class: 'play', href: job.checkout_url }, 'Оплатить ↗')) : null,
     job.artifacts.map((item) => el('div', { class: 'downloads' },
@@ -377,6 +392,7 @@ function jobCard(job) {
       download(item.guide, 'КАК_ЗАПУСТИТЬ.txt', 'Как запустить ↓', 'ghost'),
       // Сайт заказчика опубликован на GitHub Pages: ссылка лежит в artifacts (tools/deliver_game.py --publish).
       item.url ? el('a', { class: 'play', href: item.url, target: '_blank', rel: 'noopener' }, 'Открыть сайт ↗') : null)),
+    errorBox,
   );
 }
 

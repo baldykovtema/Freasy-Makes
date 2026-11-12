@@ -26,12 +26,12 @@ Deno.serve(async (request) => {
   }
 
   const plan = PLANS[body.plan as keyof typeof PLANS];
-  if (plan.priceRsd && !PAYMENTS_ENABLED) return json({ error: 'Этот план скоро появится' }, 403);
+  if (plan.priceUsd && !PAYMENTS_ENABLED) return json({ error: 'Этот план скоро появится' }, 403);
   const { data: job, error } = await db.from('jobs').insert({
     user_id: user.id,
     customer_email: user.email,
     plan: plan.id,
-    status: plan.priceRsd ? 'awaiting_payment' : 'queued',
+    status: plan.priceUsd ? 'awaiting_payment' : 'queued',
     request: order,
     formats: order.formats,
   }).select('id').single();
@@ -39,7 +39,7 @@ Deno.serve(async (request) => {
   if (error) return json({ error: 'Не удалось создать заказ' }, 500);
 
   try {
-    if (!plan.priceRsd) {
+    if (!plan.priceUsd) {
       await notifyOwner(db, job.id);
       return json({ job_id: job.id });
     }

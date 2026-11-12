@@ -73,7 +73,7 @@ export const api = {
     const { data, error } = await need().from('jobs')
       .select('id, plan, status, formats, title, artifacts, error, checkout_url, created_at')
       .eq('user_id', user.id).order('created_at', { ascending: false }).limit(50);
-    if (error) throw new Error('Не удалось загрузить игры');
+    if (error) throw new Error('Не удалось загрузить заказы. Обнови страницу');
     return data;
   },
 
