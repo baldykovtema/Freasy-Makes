@@ -374,7 +374,9 @@ function jobCard(job) {
     job.status === 'awaiting_payment' && job.checkout_url ? el('div', { class: 'downloads' }, el('a', { class: 'play', href: job.checkout_url }, 'Оплатить ↗')) : null,
     job.artifacts.map((item) => el('div', { class: 'downloads' },
       download(item.file, item.file_name, `Скачать .${item.format} ↓`, 'play'),
-      download(item.guide, 'КАК_ЗАПУСТИТЬ.txt', 'Как запустить ↓', 'ghost'))),
+      download(item.guide, 'КАК_ЗАПУСТИТЬ.txt', 'Как запустить ↓', 'ghost'),
+      // Сайт заказчика опубликован на GitHub Pages: ссылка лежит в artifacts (tools/deliver_game.py --publish).
+      item.url ? el('a', { class: 'play', href: item.url, target: '_blank', rel: 'noopener' }, 'Открыть сайт ↗') : null)),
   );
 }
 

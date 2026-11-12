@@ -15,12 +15,15 @@ import subprocess
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from pathlib import Path
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://ywqxrbmgmvpbeytxjkpi.supabase.co')
 PROJECT_REF = 'ywqxrbmgmvpbeytxjkpi'
 CLI = Path.home() / '.local/bin/supabase'
 MAX_FILE_BYTES = 50 * 1024 * 1024
+REPO = Path(__file__).resolve().parent.parent
+PAGES_URL = 'https://baldykovtema.github.io/Freasy-Makes/'
 CONTENT_TYPES = {
     'exe': 'application/octet-stream',
     'dmg': 'application/x-apple-diskimage',
@@ -100,6 +103,31 @@ def how_to_run(title, rules, format_name, name):
     return f"{title or 'Твоя игра'}\n\n{steps}\n\nКАК ИГРАТЬ\n{rules or 'Подсказки есть в самой игре.'}\n\nИгра сделана на Freasy Makes: https://baldykovtema.github.io/Freasy-Makes/\n"
 
 
+def publish_site(zip_path, title, job_id):
+    """Выкладывает сайт из архива в sites/<название>-<номер>/ репозитория Freasy-Makes (GitHub Pages) и возвращает адрес."""
+    slug = re.sub(r'[^a-z0-9]+', '-', (title or '').lower()).strip('-')[:40]
+    folder = f"{slug or 'site'}-{job_id[:8]}"
+    target = REPO / 'sites' / folder
+    with zipfile.ZipFile(zip_path) as archive:
+        names = [n for n in archive.namelist() if not n.endswith('/') and not n.startswith('__MACOSX/')]
+        if 'index.html' not in names:
+            raise SystemExit('В архиве сайта нет index.html в корне')
+        for name in names:
+            dest = (target / name).resolve()
+            if not dest.is_relative_to(target.resolve()):
+                raise SystemExit(f'Небезопасный путь в архиве: {name}')
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(archive.read(name))
+    rel = f'sites/{folder}'
+    git = lambda *a: subprocess.run(['git', '-C', str(REPO), *a], check=True, capture_output=True, text=True)
+    git('add', rel)
+    changed = subprocess.run(['git', '-C', str(REPO), 'diff', '--cached', '--quiet', '--', rel]).returncode != 0
+    if changed:
+        git('commit', '-m', f'Publish the customer site {folder}', '--', rel)
+    git('push', '-q', 'origin', 'HEAD:main')
+    return f'{PAGES_URL}{rel}/'
+
+
 def main():
     parser = argparse.ArgumentParser(description='Выдать заказчику готовую игру')
     parser.add_argument('job_id')
@@ -107,12 +135,27 @@ def main():
     parser.add_argument('--title', default='')
     parser.add_argument('--rules', default='', help='Как играть или что на сайте, попадёт в инструкцию')
     parser.add_argument('--refuse', help='Отказать в заказе с этой причиной')
+    parser.add_argument('--publish', action='store_true',
+                        help='Сайт (.zip): выложить на GitHub Pages и дать заказчику ссылку в «Моих заказах». С уже выданным заказом только добавляет ссылку')
     args = parser.parse_args()
     if not re.fullmatch(r'[0-9a-f-]{36}', args.job_id):
         raise SystemExit('Неверный номер заказа')
 
     key = service_key()
     job = get_job(key, args.job_id)
+    if args.publish and job['status'] == 'done':
+        zips = [path for path in args.files if path.suffix.lower() == '.zip']
+        if not zips:
+            raise SystemExit('Укажи архив сайта .zip')
+        rows = json.loads(call(key, f"/rest/v1/jobs?id=eq.{job['id']}&select=artifacts,title"))
+        artifacts = rows[0]['artifacts']
+        url = publish_site(zips[0], args.title or rows[0]['title'] or '', job['id'])
+        for item in artifacts:
+            if item.get('format') == 'zip':
+                item['url'] = url
+        update_job(key, job['id'], {'artifacts': artifacts})
+        print(f'Сайт опубликован: {url}\nСсылка «Открыть сайт» появилась у заказчика в «Моих заказах» (GitHub Pages обновляется 1–2 минуты)')
+        return
     if job['status'] != 'queued':
         raise SystemExit(f"Заказ в статусе {job['status']}, выдавать можно только оплаченный заказ в очереди")
     if args.refuse:
@@ -135,9 +178,14 @@ def main():
         upload(key, f'{prefix}/how-to-run.txt', how_to_run(args.title, args.rules, format_name, name).encode(), 'text/plain; charset=utf-8')
         upload(key, f'{prefix}/{name}', path.read_bytes(), CONTENT_TYPES[format_name])
         artifacts.append({'format': format_name, 'file': f'{prefix}/{name}', 'file_name': name, 'guide': f'{prefix}/how-to-run.txt'})
+        if format_name == 'zip' and args.publish:
+            artifacts[-1]['url'] = publish_site(path, args.title, job['id'])
 
     update_job(key, job['id'], {'status': 'done', 'title': args.title[:80] or None, 'how_to_play': args.rules[:2000] or None, 'artifacts': artifacts})
     print('Готово: файл и инструкция появились у заказчика в разделе «Мои заказы»')
+    for item in artifacts:
+        if item.get('url'):
+            print(f"Сайт опубликован: {item['url']}")
 
 
 if __name__ == '__main__':
