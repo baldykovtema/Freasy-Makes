@@ -1,0 +1,12 @@
+<!-- Шаблон Supabase → Authentication → Emails → Confirm signup. Тема: «Активируй аккаунт Freasy Makes».
+     Проект общий с играми FreasyGames, но там почта подтверждается сама, и это письмо приходит только с Freasy Makes. -->
+<div style="margin:0;padding:32px 16px;background:#131521;font-family:Manrope,Arial,sans-serif;color:#e9e6f5">
+  <div style="max-width:480px;margin:0 auto;background:#1a1d2e;border:1px solid #2c3048;border-radius:16px;padding:32px">
+    <div style="font-size:20px;font-weight:800;color:#ffffff;margin-bottom:24px">✦ Freasy Makes</div>
+    <h1 style="font-size:22px;margin:0 0 12px;color:#ffffff">Активируй аккаунт</h1>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 24px">Привет! На Freasy Makes создан аккаунт с почтой {{ .Email }}. Нажми на кнопку, чтобы подтвердить почту и начать заказывать игры и сайты.</p>
+    <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#bca0ff;color:#171225;text-decoration:none;font-weight:800;font-size:15px;padding:14px 24px;border-radius:10px">Активировать аккаунт</a>
+    <p style="font-size:13px;line-height:1.6;color:#aaa8bb;margin:24px 0 0">Если кнопка не открывается, скопируй ссылку в браузер:<br><a href="{{ .ConfirmationURL }}" style="color:#bca0ff;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+    <p style="font-size:13px;line-height:1.6;color:#aaa8bb;margin:16px 0 0">Если аккаунт создавал не ты, просто не обращай внимания на это письмо.</p>
+  </div>
+</div>

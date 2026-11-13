@@ -1,7 +1,7 @@
 // Файлы сайта подключаются с ?v=<дата>: меняй дату здесь и в index.html, когда меняешь код, иначе браузер может взять старую копию из кэша.
-import { api } from './api.js?v=2026-11-12c';
-import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency, usd } from './currency.js?v=2026-11-12c';
-import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js?v=2026-11-12c';
+import { api, landing } from './api.js?v=2026-11-13a';
+import { CURRENCIES, detectCurrency, formatPrice, loadRates, rememberCurrency, usd } from './currency.js?v=2026-11-13a';
+import { FORMATS, LIMITS, PAYMENTS_ENABLED, PLANS, SITE_FORMAT, validateOrder } from './supabase/functions/_shared/plans.js?v=2026-11-13a';
 
 const root = document.getElementById('app');
 const nav = document.getElementById('nav');
@@ -124,6 +124,41 @@ function viewHome() {
   ];
 }
 
+// Кнопка «Отправить письмо ещё раз». getEmail возвращает почту, на которую слать письмо.
+function resendButton(getEmail, notice) {
+  const button = el('button', { class: 'ghost', type: 'button' }, 'Отправить письмо ещё раз');
+  button.addEventListener('click', async () => {
+    const address = getEmail();
+    if (!address) { notice.replaceChildren(message('error', 'Впиши почту, на которую создан аккаунт')); return; }
+    button.disabled = true;
+    try {
+      await api.resendConfirmation(address);
+      notice.replaceChildren(message('info', `Отправили новое письмо на ${address}. Проверь и папку «Спам».`));
+    } catch (failure) {
+      notice.replaceChildren(message('error', failure.message));
+    } finally {
+      button.disabled = false;
+    }
+  });
+  return button;
+}
+
+function viewCheckEmail(address, warning) {
+  const notice = el('div', { 'aria-live': 'polite' });
+  return el('section', { class: 'narrow page' },
+    el('div', { class: 'section-kicker' }, 'Почти готово'),
+    el('h1', {}, 'Проверь почту'),
+    el('div', { class: 'panel' },
+      warning
+        ? el('p', {}, 'Аккаунт для ', el('strong', {}, address), ' создан. Чтобы активировать его, нужно перейти по ссылке из письма.')
+        : el('p', {}, 'Мы отправили письмо на ', el('strong', {}, address), '. Перейди по ссылке в нём, чтобы активировать аккаунт.'),
+      el('p', { class: 'lead' }, 'Пока аккаунт не активирован, войти в него нельзя. Письмо не пришло? Загляни в «Спам» или отправь его ещё раз.'),
+      warning ? message('error', warning) : null,
+      el('div', { class: 'actions' }, resendButton(() => address, notice), el('a', { class: 'ghost', href: '#/login' }, 'Ко входу')),
+      notice),
+  );
+}
+
 function viewLogin(next) {
   // Уже вошёл — форма входа не нужна.
   if (state.user) { location.hash = next || '#/games'; return []; }
@@ -134,6 +169,7 @@ function viewLogin(next) {
   const notice = el('div', { 'aria-live': 'polite' });
   const signIn = el('button', { type: 'button', 'aria-pressed': 'true', onclick: () => setMode('in') }, 'Вход');
   const signUp = el('button', { type: 'button', 'aria-pressed': 'false', onclick: () => setMode('up') }, 'Создать аккаунт');
+  const page = el('section', { class: 'narrow page' });
 
   function setMode(value) {
     mode = value;
@@ -148,25 +184,26 @@ function viewLogin(next) {
     event.preventDefault();
     notice.replaceChildren();
     submit.disabled = true;
+    const address = email.value.trim();
     try {
       if (mode === 'in') {
-        await api.signIn(email.value.trim(), password.value);
-      } else if (!(await api.signUp(email.value.trim(), password.value))) {
-        setMode('in');
-        notice.append(message('info', 'Мы отправили письмо. Подтверди почту, а потом войди здесь.'));
+        await api.signIn(address, password.value);
+      } else {
+        const warning = await api.signUp(address, password.value);
+        page.replaceWith(viewCheckEmail(address, warning));
         return;
       }
       await setUser(await api.user());
       location.hash = next || '#/';
     } catch (failure) {
       notice.append(message('error', failure.message));
+      if (failure.code === 'email_not_confirmed' || failure.code === 'exists') notice.append(resendButton(() => email.value.trim(), notice));
     } finally {
       submit.disabled = false;
     }
   }
 
-  return el('section', { class: 'narrow page' },
-    setupBanner(),
+  page.append(...[setupBanner()].filter(Boolean),
     el('h1', {}, 'Войди в аккаунт'),
     el('p', { class: 'lead' }, 'Аккаунт нужен, чтобы сохранить твои заказы и выдать файлы только тебе.'),
     el('form', { class: 'panel', onsubmit: onSubmit },
@@ -175,7 +212,46 @@ function viewLogin(next) {
       el('div', { class: 'field' }, el('label', { htmlFor: 'password' }, 'Пароль'), password),
       submit, notice),
   );
+  return page;
 }
+
+// Сюда ведёт ссылка из письма: …/Freasy-Makes/?activated=1#access_token=… или #error=…
+function viewActivated(failure) {
+  if (!failure) {
+    return el('section', { class: 'narrow page' },
+      el('div', { class: 'section-kicker' }, 'Готово'),
+      el('h1', {}, 'Аккаунт активирован'),
+      el('div', { class: 'panel' },
+        el('p', {}, state.user ? `Почта ${state.user.email} подтверждена, вход в аккаунт уже выполнен.` : 'Почта подтверждена. Теперь можно войти в аккаунт.'),
+        el('div', { class: 'actions' }, state.user
+          ? el('a', { class: 'play', href: '#/' }, 'Выбрать план ↗')
+          : el('a', { class: 'play', href: '#/login' }, 'Войти ↗'))),
+    );
+  }
+  const notice = el('div', { 'aria-live': 'polite' });
+  const email = el('input', { id: 'resend-email', type: 'email', autocomplete: 'email' });
+  return el('section', { class: 'narrow page' },
+    el('h1', {}, 'Ссылка не сработала'),
+    el('div', { class: 'panel' },
+      el('p', {}, failure),
+      el('div', { class: 'field' }, el('label', { htmlFor: 'resend-email' }, 'Почта'), email),
+      el('div', { class: 'actions' }, resendButton(() => email.value.trim(), notice)),
+      notice),
+  );
+}
+
+function activationResult() {
+  if (!new URLSearchParams(landing.search).has('activated')) return null;
+  const params = new URLSearchParams(landing.hash.replace(/^#/, ''));
+  history.replaceState(null, '', location.pathname + '#/activated');
+  if (!params.has('error') && !params.has('error_code')) return { failure: '' };
+  const expired = params.get('error_code') === 'otp_expired';
+  return { failure: expired
+    ? 'Ссылка устарела или уже использована. Если аккаунт ещё не активирован, впиши почту и получи новое письмо.'
+    : 'Не удалось активировать аккаунт. Впиши почту и получи новое письмо.' };
+}
+// Считается после входа: Supabase сначала сам разбирает ссылку из письма и чистит адрес.
+let activation = null;
 
 // Черновик заказа: общий для «Игра» и «Сайт» и для всех планов, поэтому при переключении ничего не теряется.
 // Тексты переживают и обновление страницы (sessionStorage), файлы хранятся только в памяти вкладки.
@@ -531,6 +607,7 @@ async function route() {
   const view = page === 'studio' ? viewStudio(param, extra === 'site' ? 'site' : 'game')
     : page === 'orders' ? viewOrders()
     : page === 'games' ? viewGames()
+    : page === 'activated' ? viewActivated(activation?.failure || '')
     : page === 'login' ? viewLogin(location.hash.split('/').slice(2).join('/') ? decodeURIComponent(location.hash.split('/').slice(2).join('/')) : '')
     : viewHome();
   root.replaceChildren(...[view].flat());
@@ -541,5 +618,6 @@ async function route() {
 api.onAuthChange((user) => { setTimeout(() => setUser(user)); });
 window.addEventListener('hashchange', route);
 await setUser(await api.user());
+activation = activationResult();
 loadRates().then((rates) => { state.rates = rates; });
 route();

@@ -1,6 +1,9 @@
 import { SITE_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from './config.js';
 
 const configured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+// Адрес, с которым открыли сайт. Supabase сразу убирает из него данные ссылки из письма, поэтому запоминаем заранее.
+export const landing = { search: location.search, hash: location.hash };
 let client = null;
 
 if (configured) {
@@ -13,13 +16,23 @@ function need() {
   return client;
 }
 
+// Ссылка из письма ведёт сюда. Локально — на тот же адрес, с которого открыт сайт.
+const ACTIVATED_URL = location.hostname === 'localhost' ? `${location.origin}/?activated=1` : `${SITE_URL}?activated=1`;
+
 function russian(error) {
   const known = {
     'Invalid login credentials': 'Неверная почта или пароль',
-    'Email not confirmed': 'Сначала подтверди почту: письмо уже отправлено',
+    'Email not confirmed': 'Аккаунт ещё не активирован. Открой ссылку из письма, которое мы отправили на твою почту',
     'User already registered': 'Такой аккаунт уже есть, войди в него',
+    'Email rate limit exceeded': 'Слишком много писем подряд. Попробуй через час',
   };
-  return new Error(known[error.message] || error.message);
+  const waiting = /after (\d+) seconds/.exec(error.message);
+  const badAddress = /^Email address .* (is invalid|not authorized)/.test(error.message);
+  const text = badAddress ? 'Не удалось отправить письмо на этот адрес. Проверь почту и попробуй ещё раз'
+    : waiting ? `Письмо уже отправлено. Ещё одно можно попросить через ${waiting[1]} с` : known[error.message] || error.message;
+  const result = new Error(text);
+  result.code = error.message === 'Email not confirmed' ? 'email_not_confirmed' : error.code;
+  return result;
 }
 
 export const api = {
@@ -40,11 +53,22 @@ export const api = {
     if (error) throw russian(error);
   },
 
-  // Возвращает true, если вход выполнен сразу, и false, если нужно подтвердить почту.
+  // Аккаунт создаёт функция signup: он неактивен, пока человек не откроет ссылку из письма.
+  // Возвращает текст предупреждения, если аккаунт создан, а письмо не ушло.
   async signUp(email, password) {
-    const { data, error } = await need().auth.signUp({ email, password, options: { emailRedirectTo: SITE_URL } });
+    const { data, error } = await need().functions.invoke('signup', { body: { email, password } });
+    if (error) {
+      const details = await error.context?.json?.().catch(() => null);
+      const failure = new Error(details?.error || 'Сервис временно недоступен, попробуй позже');
+      failure.code = details?.code;
+      throw failure;
+    }
+    return data?.mailError || '';
+  },
+
+  async resendConfirmation(email) {
+    const { error } = await need().auth.resend({ type: 'signup', email, options: { emailRedirectTo: ACTIVATED_URL } });
     if (error) throw russian(error);
-    return Boolean(data.session);
   },
 
   async signOut() {

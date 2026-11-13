@@ -1,6 +1,8 @@
 import { adminClient, corsHeaders, json, notifyOwner } from '../_shared/common.ts';
 import { GUMROAD_STORE, PAYMENTS_ENABLED, PLANS, validateOrder } from '../_shared/plans.js';
 
+const LEGACY_ACCOUNTS_BEFORE = '2026-11-13T09:15:00Z';
+
 // Покупатель платит на странице товара Gumroad. Номер заказа уходит в ссылке и возвращается
 // в уведомлении об оплате (url_params), по нему payment-webhook находит заказ.
 function checkoutUrl(jobId: string, permalink: string) {
@@ -16,6 +18,10 @@ Deno.serve(async (request) => {
   const { data: auth } = await db.auth.getUser(token);
   const user = auth?.user;
   if (!user) return json({ error: 'Войди в аккаунт' }, 401);
+  // Проект общий с играми, где почта подтверждается сама. Заказывать можно с аккаунта, созданного через
+  // функцию signup (почта подтверждена по ссылке), или с аккаунта, который был до проверки почты.
+  const verified = user.email_confirmed_at && (user.app_metadata?.freasy_makes === true || user.created_at < LEGACY_ACCOUNTS_BEFORE);
+  if (!verified) return json({ error: 'Создай аккаунт Freasy Makes с настоящей почтой и подтверди её по ссылке из письма' }, 403);
 
   const body = await request.json().catch(() => null);
   const { order, errors } = validateOrder(body?.plan, body?.order);
